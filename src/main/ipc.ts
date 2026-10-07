@@ -2,6 +2,7 @@ import { app, ipcMain, shell } from 'electron'
 import { Channels } from '../shared/api'
 import { isProviderId } from '../shared/providers'
 import type { SettingsPatch, SettingsView } from '../shared/types'
+import type { ClientSetup } from './chat/chatClient'
 import type { ChatSession } from './chat/chatSession'
 import { testConnection } from './chat/testConnection'
 import type { Controller } from './controller'
@@ -15,6 +16,8 @@ interface IpcDeps {
   chatSession: ChatSession
   history: HistoryStore
   settings: SettingsStore
+  /** The same client the chat uses, so the test checks exactly what will be used. */
+  getClient(): ClientSetup
 }
 
 function isString(value: unknown): value is string {
@@ -66,7 +69,7 @@ function cleanPatch(value: unknown): SettingsPatch {
   return patch
 }
 
-export function registerIpc({ bubble, controller, chatSession, history, settings }: IpcDeps): void {
+export function registerIpc({ bubble, controller, chatSession, history, settings, getClient }: IpcDeps): void {
   // ----- Bubble -----
   ipcMain.on(Channels.bubbleDragStart, () => bubble.startDrag())
   ipcMain.on(Channels.bubbleDragMove, () => bubble.dragMove())
@@ -135,7 +138,7 @@ export function registerIpc({ bubble, controller, chatSession, history, settings
     }
     return settingsView(settings)
   })
-  ipcMain.handle(Channels.settingsTest, () => testConnection(settings))
+  ipcMain.handle(Channels.settingsTest, () => testConnection(getClient))
 
   // ----- Links in answers open in the default browser -----
   ipcMain.on(Channels.openExternal, (_event, url: unknown) => {

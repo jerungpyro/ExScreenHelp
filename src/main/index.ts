@@ -1,6 +1,6 @@
 import { join } from 'node:path'
-import { app, safeStorage, screen, type Tray } from 'electron'
-import { clientFromSettings } from './chat/chatClient'
+import { app, net, safeStorage, screen, type Tray } from 'electron'
+import { clientFromSettings, type FetchFunction } from './chat/chatClient'
 import { createChatSession } from './chat/chatSession'
 import { createController, forwardChatEvents } from './controller'
 import { applyLaunchAtStartup, registerIpc } from './ipc'
@@ -42,14 +42,22 @@ async function start(): Promise<void> {
   const stage = await createStageWindow()
   const bubble = await createBubbleWindow(anchor, workArea)
 
+  // Send AI requests the way the browser does, so they use Windows' proxy settings and trusted certificates.
+  // Node's own fetch ignores both, so it can't connect on networks with a proxy or antivirus HTTPS scanning.
+  const fetchLikeBrowser: FetchFunction = (input, init) => {
+    const url = input instanceof URL ? input.href : input
+    return net.fetch(url, init)
+  }
+  const getClient = () => clientFromSettings(settings, fetchLikeBrowser)
+
   const chatSession = createChatSession({
     history,
-    getClient: () => clientFromSettings(settings),
+    getClient,
     emit: forwardChatEvents(stage)
   })
 
   const controller = createController({ bubble, stage, settings, history, chatSession })
-  registerIpc({ bubble, controller, chatSession, history, settings })
+  registerIpc({ bubble, controller, chatSession, history, settings, getClient })
   applyLaunchAtStartup(settings.get().launchAtStartup)
 
   const showBubble = () => {

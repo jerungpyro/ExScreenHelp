@@ -1,6 +1,6 @@
 import OpenAI, { APIError } from 'openai'
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions'
-import type { ChatClient, ChatClientConfig, ChatRequest } from './chatClient'
+import type { ChatClient, ChatClientConfig, ChatRequest, FetchFunction } from './chatClient'
 import { DEFAULT_TIMEOUTS, streamWithIdleTimeout, type ClientTimeouts } from './streamTimeout'
 
 /**
@@ -55,22 +55,24 @@ export function toOpenAiMessages(request: ChatRequest): ChatCompletionMessagePar
  * Gemini wraps its error replies in a list (`[{"error": {...}}]`). The OpenAI SDK only reads a plain
  * object, so the message (such as "Please pass a valid API key") would be lost. This unwraps the list.
  */
-async function fetchUnwrappingErrorLists(input: string | URL | Request, init?: RequestInit): Promise<Response> {
-  const response = await fetch(input, init)
-  if (response.ok) {
-    return response
-  }
-
-  let body = await response.text()
-  try {
-    const parsed: unknown = JSON.parse(body)
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      body = JSON.stringify(parsed[0])
+function unwrappingErrorLists(send: FetchFunction): FetchFunction {
+  return async (input, init) => {
+    const response = await send(input, init)
+    if (response.ok) {
+      return response
     }
-  } catch {
-    // Not JSON: pass it on unchanged.
+
+    let body = await response.text()
+    try {
+      const parsed: unknown = JSON.parse(body)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        body = JSON.stringify(parsed[0])
+      }
+    } catch {
+      // Not JSON: pass it on unchanged.
+    }
+    return new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers })
   }
-  return new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers })
 }
 
 export function createOpenAiClient(config: ChatClientConfig, timeouts: ClientTimeouts = DEFAULT_TIMEOUTS): ChatClient {
@@ -79,7 +81,7 @@ export function createOpenAiClient(config: ChatClientConfig, timeouts: ClientTim
     baseURL: config.baseUrl,
     maxRetries: 0,
     timeout: timeouts.nonStreamTotalMs,
-    fetch: fetchUnwrappingErrorLists
+    fetch: unwrappingErrorLists(config.fetch ?? fetch)
   })
 
   async function* streamed(messages: ChatCompletionMessageParam[], signal: AbortSignal): AsyncGenerator<string> {

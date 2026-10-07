@@ -1,13 +1,12 @@
 import type { TestConnectionResult } from '../../shared/types'
-import type { SettingsStore } from '../storage/settings'
 import { mapError, noKeyError } from './apiErrors'
-import { clientFromSettings, type ChatRequest } from './chatClient'
+import type { ChatRequest, ClientSetup } from './chatClient'
 
 const TEST_TIMEOUT_MS = 30_000
 
 /** Sends a tiny text-only request with the saved settings to check the key and model name. */
-export async function testConnection(settings: SettingsStore): Promise<TestConnectionResult> {
-  const { providerName, model, client } = clientFromSettings(settings)
+export async function testConnection(getClient: () => ClientSetup): Promise<TestConnectionResult> {
+  const { providerName, model, client } = getClient()
   if (client === null) {
     return { ok: false, message: noKeyError(providerName).message }
   }

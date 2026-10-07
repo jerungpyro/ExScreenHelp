@@ -72,6 +72,20 @@ function httpFailureOf(err: unknown): HttpFailure | null {
   return null
 }
 
+/**
+ * Why a connection failed, such as "net::ERR_NAME_NOT_RESOLVED", or null if no reason was given.
+ * The SDKs only say "Connection error." and keep the real reason as the error's cause (sometimes a cause's cause).
+ */
+function connectionFailureReason(err: Error): string | null {
+  let reason: string | null = null
+  let cause: unknown = err.cause
+  while (cause instanceof Error) {
+    reason = cause.message
+    cause = cause.cause
+  }
+  return reason
+}
+
 /** Maps anything thrown while talking to the AI provider to a message for the panel (spec §8). */
 export function mapError(err: unknown, providerName: string, model: string): ChatErrorInfo {
   // Each SDK's timeout class extends its connection error class, so check timeouts first.
@@ -83,7 +97,12 @@ export function mapError(err: unknown, providerName: string, model: string): Cha
     return { kind: 'timeout', message: `${providerName} took too long to respond.` }
   }
   if (err instanceof APIConnectionError || err instanceof Anthropic.APIConnectionError) {
-    return { kind: 'network', message: `Can't reach ${providerName}. Check your internet connection.` }
+    let message = `Can't reach ${providerName}. Check your internet connection.`
+    const reason = connectionFailureReason(err)
+    if (reason !== null) {
+      message += ` (${reason})`
+    }
+    return { kind: 'network', message }
   }
   if (err instanceof ChatRefusedError) {
     return {

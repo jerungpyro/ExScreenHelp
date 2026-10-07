@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net'
 import { APIError } from 'openai'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { ChatTimeoutError, mapError } from './apiErrors'
-import type { ChatRequest } from './chatClient'
+import type { ChatRequest, FetchFunction } from './chatClient'
 import { createOpenAiClient, resetStreamingSupport, toOpenAiMessages } from './openaiClient'
 
 type Handler = (body: { stream?: boolean; messages?: unknown }, res: ServerResponse) => void
@@ -122,6 +122,24 @@ describe('OpenAI-compatible client', () => {
 
     const chunks = await collect(client().streamChat(messages, new AbortController().signal))
     expect(chunks).toEqual(['Hel', 'lo'])
+  })
+
+  it('sends requests with the fetch it is given', async () => {
+    handler = (_body, res) => {
+      startStream(res)
+      res.write(sseChunk('Hi'))
+      res.end('data: [DONE]\n\n')
+    }
+    const requestedUrls: string[] = []
+    const recordingFetch: FetchFunction = (input, init) => {
+      requestedUrls.push(String(input))
+      return fetch(input, init)
+    }
+
+    const config = { provider: 'openai' as const, apiKey: 'sk-test', baseUrl, model: 'gpt-x', fetch: recordingFetch }
+    const chunks = await collect(createOpenAiClient(config).streamChat(messages, new AbortController().signal))
+    expect(chunks).toEqual(['Hi'])
+    expect(requestedUrls).toEqual([`${baseUrl}/chat/completions`])
   })
 
   it('surfaces HTTP errors with their status', async () => {

@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net'
 import Anthropic from '@anthropic-ai/sdk'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { ChatRefusedError, ChatTimeoutError, mapError } from './apiErrors'
-import type { ChatRequest } from './chatClient'
+import type { ChatRequest, FetchFunction } from './chatClient'
 import { createClaudeClient, toClaudeMessages } from './claudeClient'
 
 interface Received {
@@ -150,6 +150,24 @@ describe('Claude client', () => {
     }
 
     expect(await collect(client().streamChat(hello, new AbortController().signal))).toEqual(['Hel', 'lo'])
+  })
+
+  it('sends requests with the fetch it is given', async () => {
+    handler = (_received, res) => {
+      startStream(res)
+      writeText(res, 'Hi')
+      endStream(res, 'end_turn')
+    }
+    const requestedUrls: string[] = []
+    const recordingFetch: FetchFunction = (input, init) => {
+      requestedUrls.push(String(input))
+      return fetch(input, init)
+    }
+
+    const config = { provider: 'claude' as const, apiKey: 'sk-ant-test', baseUrl, model: 'claude-x', fetch: recordingFetch }
+    expect(await collect(createClaudeClient(config).streamChat(hello, new AbortController().signal))).toEqual(['Hi'])
+    expect(requestedUrls).toHaveLength(1)
+    expect(requestedUrls[0]).toContain(`${baseUrl}/v1/messages`)
   })
 
   it('sends the key, the system prompt separately, and a limit on the answer length', async () => {

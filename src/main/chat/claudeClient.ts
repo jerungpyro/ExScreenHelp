@@ -50,7 +50,8 @@ export function createClaudeClient(config: ChatClientConfig, timeouts: ClientTim
     authToken: null,
     baseURL: config.baseUrl,
     maxRetries: 0,
-    timeout: timeouts.nonStreamTotalMs
+    timeout: timeouts.nonStreamTotalMs,
+    fetch: config.fetch
   })
 
   async function* streamChat(request: ChatRequest, signal: AbortSignal): AsyncGenerator<string> {

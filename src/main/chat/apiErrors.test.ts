@@ -66,6 +66,20 @@ describe('mapError', () => {
     expect(info).toEqual({ kind: 'network', message: "Can't reach Gemini. Check your internet connection." })
   })
 
+  it('adds the reason a connection failed, from Electron or from Node', () => {
+    const fromElectron = new APIConnectionError({ message: 'Connection error.', cause: new Error('net::ERR_CERT_AUTHORITY_INVALID') })
+    expect(mapError(fromElectron, 'OpenAI', 'x').message).toBe(
+      "Can't reach OpenAI. Check your internet connection. (net::ERR_CERT_AUTHORITY_INVALID)"
+    )
+
+    // Node's fetch hides the reason one level deeper.
+    const lookupFailed = new Error('getaddrinfo ENOTFOUND api.openai.com')
+    const fromNode = new APIConnectionError({ message: 'Connection error.', cause: new TypeError('fetch failed', { cause: lookupFailed }) })
+    expect(mapError(fromNode, 'OpenAI', 'x').message).toBe(
+      "Can't reach OpenAI. Check your internet connection. (getaddrinfo ENOTFOUND api.openai.com)"
+    )
+  })
+
   it('maps both our idle timeout and the SDK timeout to a timeout', () => {
     expect(mapError(new ChatTimeoutError(), 'DeepSeek', 'x').kind).toBe('timeout')
     expect(mapError(new APIConnectionTimeoutError(), 'DeepSeek', 'x').kind).toBe('timeout')

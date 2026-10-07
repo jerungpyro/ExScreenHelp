@@ -22,11 +22,16 @@ export interface ChatClient {
   streamChat(request: ChatRequest, signal: AbortSignal): AsyncGenerator<string>
 }
 
+/** Sends an HTTP request, like the standard fetch. */
+export type FetchFunction = (input: string | URL | Request, init?: RequestInit) => Promise<Response>
+
 export interface ChatClientConfig {
   provider: ProviderId
   apiKey: string
   baseUrl: string
   model: string
+  /** How requests are sent. Without it, Node's own fetch is used (as in the tests). */
+  fetch?: FetchFunction
 }
 
 /** Claude has its own API. DeepSeek, OpenAI and Gemini all offer OpenAI's. */
@@ -46,12 +51,12 @@ export interface ClientSetup {
   client: ChatClient | null
 }
 
-export function clientFromSettings(settings: SettingsStore): ClientSetup {
+export function clientFromSettings(settings: SettingsStore, fetch: FetchFunction): ClientSetup {
   const { provider, model, baseUrl } = settings.get()
   const providerName = PROVIDERS[provider].name
   const apiKey = settings.getApiKey(provider)
   if (apiKey === null) {
     return { providerName, model, client: null }
   }
-  return { providerName, model, client: createChatClient({ provider, apiKey, baseUrl, model }) }
+  return { providerName, model, client: createChatClient({ provider, apiKey, baseUrl, model, fetch }) }
 }
