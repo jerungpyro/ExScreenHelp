@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { Conversation } from '../../shared/types'
-import { buildMessages } from './buildMessages'
+import { buildRequest } from './buildRequest'
 import { SYSTEM_PROMPT } from './systemPrompt'
 
-const IMAGE = 'data:image/png;base64,AAAA'
+const IMAGE = 'AAAA'
 
-/** Stands in for reading a capture from disk: each file name gets a recognisable data URL. */
+/** Stands in for reading a capture from disk: each file name gets recognisable base64. */
 function imageFor(captureName: string): string {
-  return `data:image/png;base64,${captureName}`
+  return `base64-of-${captureName}`
 }
 
 function conversationWith(messages: Conversation['messages']): Conversation {
@@ -20,20 +20,14 @@ function conversationWith(messages: Conversation['messages']): Conversation {
   }
 }
 
-describe('buildMessages', () => {
+describe('buildRequest', () => {
   it('builds the first request: system prompt, then the capture with its intro text', () => {
     const conversation = conversationWith([{ role: 'user', text: '', image: 'capture.png', createdAt: 't1' }])
 
-    expect(buildMessages(conversation, () => IMAGE)).toEqual([
-      { role: 'system', content: SYSTEM_PROMPT },
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: 'Here is the selected area.' },
-          { type: 'image_url', image_url: { url: IMAGE } }
-        ]
-      }
-    ])
+    expect(buildRequest(conversation, () => IMAGE)).toEqual({
+      system: SYSTEM_PROMPT,
+      turns: [{ role: 'user', text: 'Here is the selected area.', imagePngBase64: IMAGE }]
+    })
   })
 
   it('includes the whole conversation, with the image, on a follow-up', () => {
@@ -43,13 +37,12 @@ describe('buildMessages', () => {
       { role: 'user', text: 'How do I fix it?', createdAt: 't3' }
     ])
 
-    const messages = buildMessages(conversation, () => IMAGE)
+    const { turns } = buildRequest(conversation, () => IMAGE)
 
-    expect(messages).toHaveLength(4)
-    expect(messages[0]).toEqual({ role: 'system', content: SYSTEM_PROMPT })
-    expect(messages[1]).toMatchObject({ role: 'user', content: [{ type: 'text' }, { type: 'image_url' }] })
-    expect(messages[2]).toEqual({ role: 'assistant', content: 'It is a TypeError.' })
-    expect(messages[3]).toEqual({ role: 'user', content: 'How do I fix it?' })
+    expect(turns).toHaveLength(3)
+    expect(turns[0]).toMatchObject({ role: 'user', imagePngBase64: IMAGE })
+    expect(turns[1]).toEqual({ role: 'assistant', text: 'It is a TypeError.' })
+    expect(turns[2]).toEqual({ role: 'user', text: 'How do I fix it?' })
   })
 
   it('keeps an incomplete earlier answer as context', () => {
@@ -59,7 +52,7 @@ describe('buildMessages', () => {
       { role: 'user', text: 'Keep going', createdAt: 't3' }
     ])
 
-    expect(buildMessages(conversation, () => IMAGE)[2]).toEqual({ role: 'assistant', content: 'Partial answ' })
+    expect(buildRequest(conversation, () => IMAGE).turns[1]).toEqual({ role: 'assistant', text: 'Partial answ' })
   })
 
   it('adds the user text to the intro when the capture message has some', () => {
@@ -67,13 +60,10 @@ describe('buildMessages', () => {
       { role: 'user', text: 'Translate this', image: 'capture.png', createdAt: 't1' }
     ])
 
-    const firstUser = buildMessages(conversation, () => IMAGE)[1]
-    expect(firstUser).toEqual({
+    expect(buildRequest(conversation, () => IMAGE).turns[0]).toEqual({
       role: 'user',
-      content: [
-        { type: 'text', text: 'Here is the selected area.\n\nTranslate this' },
-        { type: 'image_url', image_url: { url: IMAGE } }
-      ]
+      text: 'Here is the selected area.\n\nTranslate this',
+      imagePngBase64: IMAGE
     })
   })
 
@@ -86,22 +76,18 @@ describe('buildMessages', () => {
       { role: 'user', text: '', image: 'capture-3.png', createdAt: 't5' }
     ])
 
-    const messages = buildMessages(conversation, imageFor)
+    const { turns } = buildRequest(conversation, imageFor)
 
-    expect(messages[3]).toEqual({
+    expect(turns[0].imagePngBase64).toBe(imageFor('capture.png'))
+    expect(turns[2]).toEqual({
       role: 'user',
-      content: [
-        { type: 'text', text: 'Here is another selected area.\n\nNow I get this' },
-        { type: 'image_url', image_url: { url: imageFor('capture-2.png') } }
-      ]
+      text: 'Here is another selected area.\n\nNow I get this',
+      imagePngBase64: imageFor('capture-2.png')
     })
-    expect(messages[5]).toEqual({
+    expect(turns[4]).toEqual({
       role: 'user',
-      content: [
-        { type: 'text', text: 'Here is another selected area.' },
-        { type: 'image_url', image_url: { url: imageFor('capture-3.png') } }
-      ]
+      text: 'Here is another selected area.',
+      imagePngBase64: imageFor('capture-3.png')
     })
-    expect(messages[1]).toMatchObject({ content: [{}, { image_url: { url: imageFor('capture.png') } }] })
   })
 })

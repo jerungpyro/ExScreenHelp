@@ -1,7 +1,7 @@
 import { join } from 'node:path'
 import { app, safeStorage, screen, type Tray } from 'electron'
+import { clientFromSettings } from './chat/chatClient'
 import { createChatSession } from './chat/chatSession'
-import { createDeepseekClient } from './chat/deepseekClient'
 import { createController, forwardChatEvents } from './controller'
 import { applyLaunchAtStartup, registerIpc } from './ipc'
 import { clampAnchor } from './layout/snap'
@@ -44,14 +44,7 @@ async function start(): Promise<void> {
 
   const chatSession = createChatSession({
     history,
-    getClient: () => {
-      const apiKey = settings.getApiKey()
-      if (apiKey === null) {
-        return null
-      }
-      const { model, baseUrl } = settings.get()
-      return { client: createDeepseekClient({ apiKey, baseUrl, model }), model }
-    },
+    getClient: () => clientFromSettings(settings),
     emit: forwardChatEvents(stage)
   })
 

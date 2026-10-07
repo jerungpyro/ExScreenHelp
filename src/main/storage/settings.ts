@@ -1,10 +1,18 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { DEFAULT_BASE_URL, DEFAULT_MODEL } from '../../shared/constants'
+import { DEFAULT_PROVIDER, isProviderId, PROVIDERS, type ProviderId } from '../../shared/providers'
 import type { BubbleAnchor, Settings } from '../../shared/types'
 
 const SETTINGS_FILE = 'settings.json'
-const API_KEY_FILE = 'apikey.bin'
+
+/** Each provider's key is kept in its own file, so switching providers doesn't lose a key. */
+function apiKeyFileName(provider: ProviderId): string {
+  // DeepSeek was the only provider before version 1.1, so its key keeps the original file name.
+  if (provider === 'deepseek') {
+    return 'apikey.bin'
+  }
+  return `apikey-${provider}.bin`
+}
 
 /** Encrypts the API key. In the app this is Electron's safeStorage (Windows DPAPI); tests use a fake. */
 export interface SecretCrypto {
@@ -16,16 +24,18 @@ export interface SecretCrypto {
 export interface SettingsStore {
   get(): Settings
   update(patch: Partial<Settings>): Settings
+  /** Whether the chosen provider has a key saved. */
   hasApiKey(): boolean
-  getApiKey(): string | null
-  setApiKey(key: string): void
-  apiKeyHint(): string | null
+  getApiKey(provider: ProviderId): string | null
+  setApiKey(provider: ProviderId, key: string): void
+  apiKeyHint(provider: ProviderId): string | null
 }
 
 function defaultSettings(): Settings {
   return {
-    model: DEFAULT_MODEL,
-    baseUrl: DEFAULT_BASE_URL,
+    provider: DEFAULT_PROVIDER,
+    model: PROVIDERS[DEFAULT_PROVIDER].model,
+    baseUrl: PROVIDERS[DEFAULT_PROVIDER].baseUrl,
     launchAtStartup: false,
     // The real position is clamped to the screen when the bubble is first placed.
     bubble: { side: 'right', y: 240 }
@@ -55,6 +65,13 @@ function readSettingsFile(path: string): Settings {
     return settings
   }
 
+  // Settings saved before version 1.1 have no provider: they were DeepSeek's.
+  if (isProviderId(saved.provider)) {
+    settings.provider = saved.provider
+    // If the model or address is missing below, fall back to this provider's, not DeepSeek's.
+    settings.model = PROVIDERS[saved.provider].model
+    settings.baseUrl = PROVIDERS[saved.provider].baseUrl
+  }
   if (typeof saved.model === 'string' && saved.model.trim() !== '') {
     settings.model = saved.model
   }
@@ -72,7 +89,6 @@ function readSettingsFile(path: string): Settings {
 
 export function createSettingsStore(dir: string, crypto: SecretCrypto): SettingsStore {
   const settingsPath = join(dir, SETTINGS_FILE)
-  const apiKeyPath = join(dir, API_KEY_FILE)
   let current = readSettingsFile(settingsPath)
 
   function get(): Settings {
@@ -86,7 +102,8 @@ export function createSettingsStore(dir: string, crypto: SecretCrypto): Settings
     return get()
   }
 
-  function getApiKey(): string | null {
+  function getApiKey(provider: ProviderId): string | null {
+    const apiKeyPath = join(dir, apiKeyFileName(provider))
     if (!existsSync(apiKeyPath)) {
       return null
     }
@@ -99,10 +116,11 @@ export function createSettingsStore(dir: string, crypto: SecretCrypto): Settings
   }
 
   function hasApiKey(): boolean {
-    return getApiKey() !== null
+    return getApiKey(current.provider) !== null
   }
 
-  function setApiKey(key: string): void {
+  function setApiKey(provider: ProviderId, key: string): void {
+    const apiKeyPath = join(dir, apiKeyFileName(provider))
     const trimmed = key.trim()
     if (trimmed === '') {
       rmSync(apiKeyPath, { force: true })
@@ -115,8 +133,8 @@ export function createSettingsStore(dir: string, crypto: SecretCrypto): Settings
     writeFileSync(apiKeyPath, crypto.encrypt(trimmed))
   }
 
-  function apiKeyHint(): string | null {
-    const key = getApiKey()
+  function apiKeyHint(provider: ProviderId): string | null {
+    const key = getApiKey(provider)
     if (key === null) {
       return null
     }

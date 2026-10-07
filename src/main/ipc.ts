@@ -1,5 +1,6 @@
 import { app, ipcMain, shell } from 'electron'
 import { Channels } from '../shared/api'
+import { isProviderId } from '../shared/providers'
 import type { SettingsPatch, SettingsView } from '../shared/types'
 import type { ChatSession } from './chat/chatSession'
 import { testConnection } from './chat/testConnection'
@@ -26,8 +27,14 @@ function orbOriginFrom(value: unknown): number | undefined {
 }
 
 function settingsView(settings: SettingsStore): SettingsView {
-  const { model, baseUrl, launchAtStartup } = settings.get()
-  return { model, baseUrl, launchAtStartup, apiKeyHint: settings.apiKeyHint() }
+  const { provider, model, baseUrl, launchAtStartup } = settings.get()
+  const apiKeyHints = {
+    deepseek: settings.apiKeyHint('deepseek'),
+    openai: settings.apiKeyHint('openai'),
+    claude: settings.apiKeyHint('claude'),
+    gemini: settings.apiKeyHint('gemini')
+  }
+  return { provider, model, baseUrl, launchAtStartup, apiKeyHints }
 }
 
 /** Registering at login only makes sense for the built app; in development it would register electron.exe. */
@@ -44,6 +51,9 @@ function cleanPatch(value: unknown): SettingsPatch {
     return patch
   }
   const raw = value as Record<string, unknown>
+  if (isProviderId(raw.provider)) {
+    patch.provider = raw.provider
+  }
   if (isString(raw.model) && raw.model.trim() !== '') {
     patch.model = raw.model.trim()
   }
@@ -119,9 +129,9 @@ export function registerIpc({ bubble, controller, chatSession, history, settings
     }
     return settingsView(settings)
   })
-  ipcMain.handle(Channels.settingsSetApiKey, (_event, key: unknown) => {
-    if (isString(key)) {
-      settings.setApiKey(key)
+  ipcMain.handle(Channels.settingsSetApiKey, (_event, provider: unknown, key: unknown) => {
+    if (isProviderId(provider) && isString(key)) {
+      settings.setApiKey(provider, key)
     }
     return settingsView(settings)
   })

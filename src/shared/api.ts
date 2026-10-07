@@ -1,3 +1,4 @@
+import type { ProviderId } from './providers'
 import type {
   BubbleVisibility,
   ChatChunk,
@@ -73,7 +74,9 @@ export interface ExScreenApi {
   settings: {
     get(): Promise<SettingsView>
     save(patch: SettingsPatch): Promise<SettingsView>
-    setApiKey(key: string): Promise<SettingsView>
+    /** Saves the key for one provider. An empty key removes it. */
+    setApiKey(provider: ProviderId, key: string): Promise<SettingsView>
+    /** Tries the saved settings with a tiny request. */
     testConnection(): Promise<TestConnectionResult>
   }
 

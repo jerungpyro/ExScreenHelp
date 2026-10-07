@@ -1,8 +1,8 @@
 {
   "name": "exscreenhelp",
   "productName": "ExScreenHelp",
-  "version": "1.0.0",
-  "description": "A floating on-screen assistant: select any area of your screen and ask DeepSeek about it.",
+  "version": "1.1.0",
+  "description": "A floating on-screen assistant: select any area of your screen and ask DeepSeek, OpenAI, Claude or Gemini about it.",
   "author": "bakasyah",
   "license": "MIT",
   "homepage": "https://github.com/jerungpyro/ExScreenHelp",
@@ -23,6 +23,7 @@
     "release": "npm run build && electron-builder --win nsis zip --publish never --config.directories.output=release"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
     "openai": "^7.23.0"
   },
   "devDependencies": {

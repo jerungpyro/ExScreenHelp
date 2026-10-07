@@ -2,10 +2,11 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import type { AddressInfo } from 'node:net'
 import { APIError } from 'openai'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { ChatTimeoutError } from './apiErrors'
-import { createDeepseekClient, resetStreamingSupport } from './deepseekClient'
+import { ChatTimeoutError, mapError } from './apiErrors'
+import type { ChatRequest } from './chatClient'
+import { createOpenAiClient, resetStreamingSupport, toOpenAiMessages } from './openaiClient'
 
-type Handler = (body: { stream?: boolean }, res: ServerResponse) => void
+type Handler = (body: { stream?: boolean; messages?: unknown }, res: ServerResponse) => void
 
 let server: Server
 let baseUrl: string
@@ -53,7 +54,7 @@ afterEach(async () => {
 })
 
 function client(timeouts?: { streamIdleMs: number; nonStreamTotalMs: number }) {
-  return createDeepseekClient({ apiKey: 'sk-test', baseUrl, model: 'deepseek-flash' }, timeouts)
+  return createOpenAiClient({ provider: 'deepseek', apiKey: 'sk-test', baseUrl, model: 'deepseek-flash' }, timeouts)
 }
 
 async function collect(chunks: AsyncIterable<string>, received: string[] = []): Promise<string[]> {
@@ -63,9 +64,54 @@ async function collect(chunks: AsyncIterable<string>, received: string[] = []): 
   return received
 }
 
-const messages = [{ role: 'user' as const, content: 'hi' }]
+const messages: ChatRequest = { turns: [{ role: 'user', text: 'hi' }] }
 
-describe('deepseek client', () => {
+describe('toOpenAiMessages', () => {
+  it('puts the system prompt first and sends each screenshot as a PNG data URL after its text', () => {
+    const request: ChatRequest = {
+      system: 'Be brief.',
+      turns: [
+        { role: 'user', text: 'Here is the selected area.', imagePngBase64: 'AAAA' },
+        { role: 'assistant', text: 'It is a cat.' },
+        { role: 'user', text: 'What breed?' }
+      ]
+    }
+
+    expect(toOpenAiMessages(request)).toEqual([
+      { role: 'system', content: 'Be brief.' },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Here is the selected area.' },
+          { type: 'image_url', image_url: { url: 'data:image/png;base64,AAAA' } }
+        ]
+      },
+      { role: 'assistant', content: 'It is a cat.' },
+      { role: 'user', content: 'What breed?' }
+    ])
+  })
+
+  it('leaves out the system message when there is none', () => {
+    expect(toOpenAiMessages({ turns: [{ role: 'user', text: 'hi' }] })).toEqual([{ role: 'user', content: 'hi' }])
+  })
+})
+
+describe('OpenAI-compatible client', () => {
+  it('sends the conversation as OpenAI-style messages', async () => {
+    let received: unknown = null
+    handler = (body, res) => {
+      received = body.messages
+      startStream(res)
+      res.end('data: [DONE]\n\n')
+    }
+
+    await collect(client().streamChat({ system: 'Be brief.', turns: [{ role: 'user', text: 'hi' }] }, new AbortController().signal))
+    expect(received).toEqual([
+      { role: 'system', content: 'Be brief.' },
+      { role: 'user', content: 'hi' }
+    ])
+  })
+
   it('yields streamed chunks in order', async () => {
     handler = (_body, res) => {
       startStream(res)
@@ -84,6 +130,17 @@ describe('deepseek client', () => {
     const error = await collect(client().streamChat(messages, new AbortController().signal)).catch((e) => e)
     expect(error).toBeInstanceOf(APIError)
     expect((error as APIError).status).toBe(401)
+  })
+
+  it("reads Gemini's error replies, which come wrapped in a list", async () => {
+    // The body Gemini really sends for a wrong key.
+    handler = (_body, res) =>
+      sendJson(res, 400, [{ error: { code: 400, message: 'Please pass a valid API key', status: 'INVALID_ARGUMENT' } }])
+
+    const error = await collect(client().streamChat(messages, new AbortController().signal)).catch((e) => e)
+    expect(error).toBeInstanceOf(APIError)
+    expect((error as APIError).message).toContain('Please pass a valid API key')
+    expect(mapError(error, 'Gemini', 'gemini-3.8-flash').kind).toBe('invalid-key')
   })
 
   it('falls back to a normal request when streaming is rejected, and remembers it', async () => {

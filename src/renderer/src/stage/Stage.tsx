@@ -1,6 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion, type Transition } from 'motion/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
+import { PROVIDERS } from '../../../shared/providers'
 import type { ChatState, StageLayout } from '../../../shared/types'
 import { Orb, type OrbHandle } from '../components/Orb'
 import { EMPTY_COMPOSER, type ComposerPatch, type ComposerState } from './composer'
@@ -206,8 +207,8 @@ export function Stage() {
   /** Selecting needs an API key; without one, explain and open Settings instead. */
   async function hasApiKeyOrExplain(): Promise<boolean> {
     const settings = await api.settings.get()
-    if (settings.apiKeyHint === null) {
-      setNotice('Add your DeepSeek API key to start asking about your screen.')
+    if (settings.apiKeyHints[settings.provider] === null) {
+      setNotice(`Add your ${PROVIDERS[settings.provider].name} API key to start asking about your screen.`)
       openView('settings')
       return false
     }

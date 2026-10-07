@@ -41,7 +41,7 @@ export async function selectAreaOnOverlay(display: Display, frozen: NativeImage)
     await loadRenderer(win, 'overlay')
 
     // JPEG is much quicker to encode than PNG, and this copy is only for display.
-    // The crop sent to DeepSeek is taken from the original, lossless image.
+    // The crop sent to the AI provider is taken from the original, lossless image.
     const ready = waitForMessage(Channels.overlayReady, win.webContents, READY_TIMEOUT_MS)
     win.webContents.send(Channels.overlayImage, `data:image/jpeg;base64,${frozen.toJPEG(92).toString('base64')}`)
     await ready

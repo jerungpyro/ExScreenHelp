@@ -2,12 +2,11 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { APIConnectionError, APIError, APIUserAbortError } from 'openai'
-import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { ChatChunk, ChatState } from '../../shared/types'
 import { createHistoryStore, type HistoryStore } from '../storage/history'
+import type { ChatClient, ChatRequest } from './chatClient'
 import { createChatSession, type ChatEvent, type ChatSession } from './chatSession'
-import type { DeepseekClient } from './deepseekClient'
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47])
 
@@ -17,13 +16,13 @@ let root: string
 let history: HistoryStore
 let events: ChatEvent[]
 let script: Script
-let sentMessages: ChatCompletionMessageParam[][]
+let sentRequests: ChatRequest[]
 let hasKey: boolean
 let session: ChatSession
 
-const fakeClient: DeepseekClient = {
-  streamChat(messages, signal) {
-    sentMessages.push(messages)
+const fakeClient: ChatClient = {
+  streamChat(request, signal) {
+    sentRequests.push(request)
     return script(signal)
   }
 }
@@ -56,11 +55,11 @@ beforeEach(() => {
   root = mkdtempSync(join(tmpdir(), 'exscreen-session-'))
   history = createHistoryStore(root)
   events = []
-  sentMessages = []
+  sentRequests = []
   hasKey = true
   session = createChatSession({
     history,
-    getClient: () => (hasKey ? { client: fakeClient, model: 'deepseek-flash' } : null),
+    getClient: () => ({ providerName: 'DeepSeek', model: 'deepseek-flash', client: hasKey ? fakeClient : null }),
     emit: (event) => events.push(event)
   })
 })
@@ -89,14 +88,14 @@ describe('chat session', () => {
     expect(history.load(conversation.id)?.messages).toHaveLength(2)
   })
 
-  it('sends the capture as a data URL in the first request', async () => {
+  it('sends the capture as base64 PNG, with the system prompt, in the first request', async () => {
     script = async function* () {
       yield 'ok'
     }
     await session.start(PNG).finished
 
-    const firstUser = sentMessages[0][1] as { content: Array<{ type: string; image_url?: { url: string } }> }
-    expect(firstUser.content[1].image_url?.url).toBe(`data:image/png;base64,${PNG.toString('base64')}`)
+    expect(sentRequests[0].system).toContain('on-screen assistant')
+    expect(sentRequests[0].turns[0].imagePngBase64).toBe(PNG.toString('base64'))
   })
 
   it('reports busy with empty streaming text while waiting for the first chunk', async () => {
@@ -183,9 +182,9 @@ describe('chat session', () => {
     }
     await session.followUp(conversation.id, '  Why?  ')
 
-    const sent = sentMessages[1]
-    expect(sent).toHaveLength(4)
-    expect(sent[3]).toEqual({ role: 'user', content: 'Why?' })
+    const sent = sentRequests[1].turns
+    expect(sent).toHaveLength(3)
+    expect(sent[2]).toEqual({ role: 'user', text: 'Why?' })
     const messages = lastState().conversation.messages
     expect(messages.map((m) => m.text)).toEqual(['', 'First answer', 'Why?', 'Second answer'])
     // The title comes from the first answer and doesn't change on follow-ups.
@@ -208,9 +207,9 @@ describe('chat session', () => {
 
     const lastUser = lastState().conversation.messages[2]
     expect(lastUser).toMatchObject({ role: 'user', text: '', image: 'capture-2.png' })
-    const sentUser = sentMessages[1][3] as { content: Array<{ type: string; text?: string; image_url?: { url: string } }> }
-    expect(sentUser.content[0].text).toBe('Here is another selected area.')
-    expect(sentUser.content[1].image_url?.url).toBe(`data:image/png;base64,${secondPng.toString('base64')}`)
+    const sentUser = sentRequests[1].turns[2]
+    expect(sentUser.text).toBe('Here is another selected area.')
+    expect(sentUser.imagePngBase64).toBe(secondPng.toString('base64'))
   })
 
   it('drops a screenshot name that does not exist, and refuses an empty message', async () => {
@@ -262,12 +261,22 @@ describe('chat session', () => {
     expect(session.getState(conversation.id)).toBeNull()
   })
 
-  it('reports a missing API key without calling DeepSeek', async () => {
+  it('reports a missing API key without calling the provider', async () => {
     hasKey = false
     await session.start(PNG).finished
 
-    expect(sentMessages).toHaveLength(0)
+    expect(sentRequests).toHaveLength(0)
     expect(lastState()).toMatchObject({ busy: false, error: { kind: 'no-key' } })
+    expect(lastState().error?.message).toContain('DeepSeek API key')
+  })
+
+  it('names the provider in error messages', async () => {
+    script = async function* () {
+      throw APIError.generate(401, { error: { message: 'Authentication Fails' } }, undefined, new Headers())
+    }
+    await session.start(PNG).finished
+
+    expect(lastState().error?.message).toBe('DeepSeek rejected the API key. Check it in Settings.')
   })
 
   it('returns the state of a conversation saved in an earlier session', async () => {
@@ -277,7 +286,11 @@ describe('chat session', () => {
     const { conversation, finished } = session.start(PNG)
     await finished
 
-    const freshSession = createChatSession({ history, getClient: () => null, emit: () => {} })
+    const freshSession = createChatSession({
+      history,
+      getClient: () => ({ providerName: 'DeepSeek', model: 'deepseek-flash', client: null }),
+      emit: () => {}
+    })
     const state = freshSession.getState(conversation.id)
     expect(state?.conversation.messages[1].text).toBe('Saved answer')
     expect(state?.busy).toBe(false)

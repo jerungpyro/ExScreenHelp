@@ -3,16 +3,16 @@ import { NEW_CAPTURE_TITLE } from '../../shared/constants'
 import type { ChatChunk, ChatErrorInfo, ChatState, Conversation } from '../../shared/types'
 import type { HistoryStore } from '../storage/history'
 import { mapError, noKeyError } from './apiErrors'
-import { buildMessages } from './buildMessages'
-import type { DeepseekClient } from './deepseekClient'
+import { buildRequest } from './buildRequest'
+import type { ClientSetup } from './chatClient'
 import { makeTitle } from './makeTitle'
 
 export type ChatEvent = { type: 'state'; state: ChatState } | { type: 'chunk'; chunk: ChatChunk }
 
 export interface ChatSessionDeps {
   history: HistoryStore
-  /** A client for the current settings, or null when no API key is saved. */
-  getClient(): { client: DeepseekClient; model: string } | null
+  /** A client for the current settings. Its `client` is null when no API key is saved. */
+  getClient(): ClientSetup
   /** Receives every state change and every streamed chunk (forwarded to the stage window). */
   emit(event: ChatEvent): void
   now?: () => Date
@@ -77,19 +77,20 @@ export function createChatSession(deps: ChatSessionDeps): ChatSession {
     deps.emit({ type: 'state', state: stateOf(conversation) })
   }
 
-  function imageDataUrl(conversationId: string, captureName: string): string {
+  function captureBase64(conversationId: string, captureName: string): string {
     const png = readFileSync(deps.history.capturePath(conversationId, captureName))
-    return `data:image/png;base64,${png.toString('base64')}`
+    return png.toString('base64')
   }
 
-  /** Asks DeepSeek to answer the conversation as it stands, streaming and then saving the result. */
+  /** Asks the AI provider to answer the conversation as it stands, streaming and then saving the result. */
   async function answer(conversation: Conversation): Promise<void> {
     const id = conversation.id
     lastErrors.delete(id)
 
     const setup = deps.getClient()
-    if (setup === null) {
-      lastErrors.set(id, noKeyError())
+    const client = setup.client
+    if (client === null) {
+      lastErrors.set(id, noKeyError(setup.providerName))
       emitState(conversation)
       return
     }
@@ -100,8 +101,8 @@ export function createChatSession(deps: ChatSessionDeps): ChatSession {
 
     let failure: unknown = null
     try {
-      const messages = buildMessages(conversation, (captureName) => imageDataUrl(id, captureName))
-      for await (const piece of setup.client.streamChat(messages, current.controller.signal)) {
+      const request = buildRequest(conversation, (captureName) => captureBase64(id, captureName))
+      for await (const piece of client.streamChat(request, current.controller.signal)) {
         current.text += piece
         deps.emit({ type: 'chunk', chunk: { conversationId: id, text: current.text } })
       }
@@ -123,7 +124,7 @@ export function createChatSession(deps: ChatSessionDeps): ChatSession {
       conversation.messages.push({ role: 'assistant', text: current.text, status: 'incomplete', createdAt })
     }
     if (failure !== null && !stoppedByUser) {
-      lastErrors.set(id, mapError(failure, setup.model))
+      lastErrors.set(id, mapError(failure, setup.providerName, setup.model))
     }
 
     const isFirstAnswer = conversation.title === NEW_CAPTURE_TITLE

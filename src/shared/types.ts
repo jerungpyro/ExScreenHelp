@@ -1,5 +1,7 @@
 // Types shared by the main process, the preload script and the renderers.
 
+import type { ProviderId } from './providers'
+
 export interface Point {
   x: number
   y: number
@@ -76,22 +78,25 @@ export interface ConversationSummary {
 // ---------- Settings ----------
 
 export interface Settings {
+  provider: ProviderId
   model: string
   baseUrl: string
   launchAtStartup: boolean
   bubble: BubbleAnchor
 }
 
-/** What the renderer is allowed to see about settings. The API key itself never leaves the main process. */
+/** What the renderer is allowed to see about settings. API keys themselves never leave the main process. */
 export interface SettingsView {
+  provider: ProviderId
   model: string
   baseUrl: string
   launchAtStartup: boolean
-  /** "•••• abcd" when a key is saved, otherwise null. */
-  apiKeyHint: string | null
+  /** For each provider: "•••• abcd" when a key is saved, otherwise null. */
+  apiKeyHints: Record<ProviderId, string | null>
 }
 
 export interface SettingsPatch {
+  provider?: ProviderId
   model?: string
   baseUrl?: string
   launchAtStartup?: boolean
@@ -106,6 +111,7 @@ export type ChatErrorKind =
   | 'rate-limited'
   | 'bad-model'
   | 'bad-request'
+  | 'refused'
   | 'server'
   | 'network'
   | 'timeout'

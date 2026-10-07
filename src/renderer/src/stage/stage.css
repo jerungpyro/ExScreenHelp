@@ -639,13 +639,82 @@
   font-weight: 600;
 }
 
-.field__row {
+/* A label with a link at the far end of the same line. */
+.field__label-row {
   display: flex;
-  gap: 8px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.field__row .field__input {
-  flex: 1;
+.field__link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.field__link:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+/* The provider picker: radio buttons drawn as one segmented control. */
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface-sunken);
+}
+
+.segmented__option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  /* The control's 10px corner minus its 3px padding, so the corners stay parallel. */
+  border-radius: 7px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.segmented__option:hover {
+  color: var(--text);
+}
+
+.segmented__option--on,
+.segmented__option--on:hover {
+  background: var(--surface-raised);
+  color: var(--accent);
+  box-shadow:
+    0 0 0 1px var(--border-strong),
+    0 1px 2px rgb(9 44 41 / 0.1);
+}
+
+.segmented__option:has(:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* The real radio input stays in place for keyboard and screen readers, but isn't drawn. */
+.segmented__input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
 }
 
 .field__input {
@@ -753,6 +822,7 @@
   }
 
   .switch__thumb,
+  .segmented__option,
   .composer,
   .button,
   .icon-button {

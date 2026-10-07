@@ -51,7 +51,7 @@ const api: ExScreenApi = {
   settings: {
     get: () => ipcRenderer.invoke(Channels.settingsGet),
     save: (patch) => ipcRenderer.invoke(Channels.settingsSave, patch),
-    setApiKey: (key) => ipcRenderer.invoke(Channels.settingsSetApiKey, key),
+    setApiKey: (provider, key) => ipcRenderer.invoke(Channels.settingsSetApiKey, provider, key),
     testConnection: () => ipcRenderer.invoke(Channels.settingsTest)
   },
 

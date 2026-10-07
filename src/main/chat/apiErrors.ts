@@ -1,49 +1,114 @@
+import Anthropic from '@anthropic-ai/sdk'
 import { APIConnectionError, APIConnectionTimeoutError, APIError } from 'openai'
 import type { ChatErrorInfo } from '../../shared/types'
 
-/** Thrown by the DeepSeek client when no data arrives for too long. */
+/** Thrown by a chat client when no data arrives for too long. */
 export class ChatTimeoutError extends Error {
   constructor() {
-    super('DeepSeek did not respond in time.')
+    super('The AI service did not respond in time.')
     this.name = 'ChatTimeoutError'
   }
 }
 
-export function noKeyError(): ChatErrorInfo {
-  return { kind: 'no-key', message: 'Add your DeepSeek API key in Settings to get started.' }
+/** Thrown by a chat client when the caller stopped the answer. */
+export class ChatStoppedError extends Error {
+  constructor() {
+    super('The answer was stopped.')
+    this.name = 'ChatStoppedError'
+  }
 }
 
-/** The human-readable part of an API error (DeepSeek puts it in `error.message`). */
-function apiMessageOf(err: APIError): string {
-  const body = err.error as { message?: unknown } | undefined
-  if (body && typeof body.message === 'string') {
-    return body.message
+/** Thrown by a chat client when the model declined to answer. */
+export class ChatRefusedError extends Error {
+  constructor() {
+    super('The model declined to answer.')
+    this.name = 'ChatRefusedError'
   }
-  return err.message
 }
 
-/** Maps anything thrown while talking to DeepSeek to a message for the panel (spec §8). */
-export function mapError(err: unknown, model: string): ChatErrorInfo {
-  // The SDK's timeout class extends its connection error class, so check it first.
-  if (err instanceof ChatTimeoutError || err instanceof APIConnectionTimeoutError) {
-    return { kind: 'timeout', message: 'DeepSeek took too long to respond.' }
-  }
-  if (err instanceof APIConnectionError) {
-    return { kind: 'network', message: "Can't reach DeepSeek. Check your internet connection." }
-  }
+export function noKeyError(providerName: string): ChatErrorInfo {
+  return { kind: 'no-key', message: `Add your ${providerName} API key in Settings to get started.` }
+}
 
+interface HttpFailure {
+  status: number
+  /** The human-readable message from the API. */
+  message: string
+}
+
+/** The HTTP status Anthropic uses for each error type that can also arrive mid-stream. */
+const STATUS_OF_STREAM_ERROR: Record<string, number> = {
+  overloaded_error: 529,
+  api_error: 500,
+  rate_limit_error: 429
+}
+
+/** The status and message of an HTTP error from either SDK, or null if `err` isn't one. */
+function httpFailureOf(err: unknown): HttpFailure | null {
+  // OpenAI-style APIs put the message in `error.message`, and the OpenAI SDK keeps just that `error` object.
   if (err instanceof APIError && typeof err.status === 'number') {
-    const status = err.status
-    const apiMessage = apiMessageOf(err)
-    const mentionsModel = /model/i.test(apiMessage)
-
-    if (status === 401) {
-      return { kind: 'invalid-key', message: 'DeepSeek rejected the API key. Check it in Settings.' }
+    const body = err.error as { message?: unknown } | undefined
+    if (body && typeof body.message === 'string') {
+      return { status: err.status, message: body.message }
     }
-    if (status === 402) {
+    return { status: err.status, message: err.message }
+  }
+  // Anthropic's body is { type: 'error', error: { type, message } }, and its SDK keeps all of it.
+  if (err instanceof Anthropic.APIError) {
+    let status = err.status
+    // An error in the middle of a stream has no HTTP status, only a type, so use the status that type has otherwise.
+    if (status === undefined && err.type !== null) {
+      status = STATUS_OF_STREAM_ERROR[err.type]
+    }
+    if (typeof status !== 'number') {
+      return null
+    }
+    const body = err.error as { error?: { message?: unknown } } | undefined
+    if (body && body.error && typeof body.error.message === 'string') {
+      return { status, message: body.error.message }
+    }
+    return { status, message: err.message }
+  }
+  return null
+}
+
+/** Maps anything thrown while talking to the AI provider to a message for the panel (spec §8). */
+export function mapError(err: unknown, providerName: string, model: string): ChatErrorInfo {
+  // Each SDK's timeout class extends its connection error class, so check timeouts first.
+  const timedOut =
+    err instanceof ChatTimeoutError ||
+    err instanceof APIConnectionTimeoutError ||
+    err instanceof Anthropic.APIConnectionTimeoutError
+  if (timedOut) {
+    return { kind: 'timeout', message: `${providerName} took too long to respond.` }
+  }
+  if (err instanceof APIConnectionError || err instanceof Anthropic.APIConnectionError) {
+    return { kind: 'network', message: `Can't reach ${providerName}. Check your internet connection.` }
+  }
+  if (err instanceof ChatRefusedError) {
+    return {
+      kind: 'refused',
+      message: `${providerName} declined to answer this. Try asking in a different way, or select a different area.`
+    }
+  }
+
+  const failure = httpFailureOf(err)
+  if (failure !== null) {
+    const status = failure.status
+    const apiMessage = failure.message
+    const mentionsModel = /model/i.test(apiMessage)
+    // Gemini reports a wrong key as a 400 ("Please pass a valid API key"), not a 401.
+    const mentionsKey = /api[ _-]?key/i.test(apiMessage)
+    // OpenAI and Gemini report running out of credit as a 429 about "quota"; Anthropic as a 400 about "credit balance".
+    const mentionsBilling = /quota|billing|credit balance|insufficient balance/i.test(apiMessage)
+
+    if (status === 401 || ((status === 400 || status === 403) && mentionsKey)) {
+      return { kind: 'invalid-key', message: `${providerName} rejected the API key. Check it in Settings.` }
+    }
+    if (status === 402 || ((status === 400 || status === 403 || status === 429) && mentionsBilling)) {
       return {
         kind: 'no-balance',
-        message: 'Your DeepSeek account is out of balance. Top it up on the DeepSeek platform, then retry.'
+        message: `Your ${providerName} account is out of credit or over its quota. Check your plan and billing, then retry.`
       }
     }
     if (status === 429) {
@@ -52,14 +117,14 @@ export function mapError(err: unknown, model: string): ChatErrorInfo {
     if ((status === 400 || status === 404 || status === 422) && mentionsModel) {
       return {
         kind: 'bad-model',
-        message: `DeepSeek doesn't recognise the model "${model}". Check the model name in Settings.`
+        message: `${providerName} doesn't recognise the model "${model}". Check the model name in Settings.`
       }
     }
     if (status === 400 || status === 422) {
-      return { kind: 'bad-request', message: `DeepSeek couldn't process this request: ${apiMessage}` }
+      return { kind: 'bad-request', message: `${providerName} couldn't process this request: ${apiMessage}` }
     }
     if (status >= 500) {
-      return { kind: 'server', message: 'DeepSeek is having trouble right now. Try again in a moment.' }
+      return { kind: 'server', message: `${providerName} is having trouble right now. Try again in a moment.` }
     }
     return { kind: 'unknown', message: `Something went wrong (HTTP ${status}): ${apiMessage}` }
   }

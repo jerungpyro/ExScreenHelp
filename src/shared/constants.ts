@@ -27,10 +27,11 @@ export const IDLE_OPACITY = 0.6
 
 export const SNAP_DURATION_MS = 260
 
-export const DEFAULT_MODEL = 'deepseek-flash'
-export const DEFAULT_BASE_URL = 'https://api.deepseek.com'
-
-export const STREAM_IDLE_TIMEOUT_MS = 60_000
+/**
+ * Give up on a streamed answer when nothing arrives for this long. Reasoning models can think
+ * for a minute or more before the first word, without sending anything in between.
+ */
+export const STREAM_IDLE_TIMEOUT_MS = 120_000
 export const NON_STREAM_TIMEOUT_MS = 120_000
 
 export const TITLE_MAX_LENGTH = 60
