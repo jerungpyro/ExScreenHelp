@@ -1,0 +1,44 @@
+/* The window is 88x88: the 56px orb plus a 16px transparent margin for its shadow and ripples. */
+.bubble {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 1;
+  transition: opacity 450ms ease;
+  touch-action: none;
+}
+
+.bubble--idle {
+  opacity: 0.6;
+}
+
+/* Hidden with visibility, not opacity, so it disappears and reappears in a single frame. */
+.bubble--hidden {
+  visibility: hidden;
+  transition: none;
+}
+
+.bubble--dragging {
+  cursor: grabbing;
+}
+
+.bubble__press {
+  width: 100%;
+  height: 100%;
+  transition: transform 90ms ease-out;
+}
+
+.bubble--pressed .bubble__press {
+  transform: scale(0.94);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bubble,
+  .bubble__press {
+    transition: none;
+  }
+}

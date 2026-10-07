@@ -1,0 +1,13 @@
+# Personal-use build: a portable folder with ExScreenHelp.exe (no installer, no code signing).
+appId: com.bakasyah.exscreenhelp
+productName: ExScreenHelp
+directories:
+  output: dist
+  buildResources: resources
+files:
+  - out/**
+  - resources/**
+  - package.json
+win:
+  target: dir
+  icon: resources/icon.png

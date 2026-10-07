@@ -1,0 +1,64 @@
+/* The overlay shows the frozen screenshot at exactly screen size, dimmed except for the selection. */
+.overlay {
+  position: fixed;
+  inset: 0;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.overlay__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.overlay__dim {
+  position: absolute;
+  inset: 0;
+  background: rgb(6 14 13 / 0.4);
+  animation: overlay-fade-in 160ms ease-out;
+}
+
+/* The huge spread shadow dims everything outside the selection. */
+.overlay__selection {
+  position: absolute;
+  border: 1.5px solid #2dd4bf;
+  border-radius: 2px;
+  box-shadow: 0 0 0 200vmax rgb(6 14 13 / 0.4);
+}
+
+.overlay__hint {
+  position: absolute;
+  top: 28px;
+  left: 50%;
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: var(--radius-control);
+  background: rgb(20 26 26 / 0.92);
+  color: #e6eeec;
+  font-size: 13px;
+  pointer-events: none;
+  transform: translateX(-50%);
+  transition: opacity 150ms ease;
+  animation: overlay-fade-in 200ms ease-out;
+}
+
+.overlay__hint--hidden {
+  opacity: 0;
+}
+
+@keyframes overlay-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay__dim,
+  .overlay__hint {
+    animation: none;
+    transition: none;
+  }
+}

@@ -1,0 +1,99 @@
+/*
+ * Design tokens. One accent (teal), cool neutrals, and one corner-radius rule:
+ * surfaces 18px / 14px, controls 10px. The orb is the only round object.
+ */
+:root {
+  --font-ui: 'Segoe UI Variable Text', 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-code: 'Cascadia Code', 'Cascadia Mono', Consolas, monospace;
+
+  --radius-surface: 18px;
+  --radius-inner: 14px;
+  --radius-control: 10px;
+
+  /* Light theme. Surfaces are only barely translucent: without a blur, more see-through is just noise behind text. */
+  --surface: rgb(244 246 245 / 0.985);
+  --surface-raised: #fbfcfc;
+  --surface-sunken: rgb(22 32 31 / 0.05);
+  --text: #16201f;
+  --text-muted: #56625f;
+  --border: rgb(22 32 31 / 0.1);
+  --border-strong: rgb(22 32 31 / 0.18);
+  --accent: #0f766e;
+  --accent-hover: #0d655e;
+  --accent-text: #f4fffd;
+  --accent-soft: rgb(15 118 110 / 0.1);
+  --danger: #b42318;
+  --danger-soft: rgb(180 35 24 / 0.08);
+  /* Shadows must fit inside the windows' 16px transparent margin (offset + blur <= 16px). */
+  --shadow-panel: 0 4px 12px rgb(9 44 41 / 0.16), 0 1px 3px rgb(9 44 41 / 0.1);
+  --shadow-menu: 0 4px 12px rgb(9 44 41 / 0.16), 0 1px 3px rgb(9 44 41 / 0.1);
+  --skeleton: rgb(22 32 31 / 0.07);
+  --skeleton-shine: rgb(255 255 255 / 0.7);
+
+  /* Code blocks are dark in both themes. */
+  --code-bg: #0e1615;
+  --code-bar: #16201f;
+  --code-text: #dfe9e7;
+  --code-muted: #8a9a97;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: rgb(20 26 26 / 0.985);
+    --surface-raised: #1b2322;
+    --surface-sunken: rgb(0 0 0 / 0.18);
+    --text: #e6eeec;
+    --text-muted: #97a6a3;
+    --border: rgb(230 238 236 / 0.09);
+    --border-strong: rgb(230 238 236 / 0.16);
+    --accent: #2dd4bf;
+    --accent-hover: #5eead4;
+    --accent-text: #062421;
+    --accent-soft: rgb(45 212 191 / 0.12);
+    --danger: #f97066;
+    --danger-soft: rgb(249 112 102 / 0.1);
+    --shadow-panel: 0 4px 12px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
+    --shadow-menu: 0 4px 12px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
+    --skeleton: rgb(230 238 236 / 0.07);
+    --skeleton-shine: rgb(230 238 236 / 0.12);
+    --code-bg: #0b1110;
+    --code-bar: #121a19;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  /* The bubble and stage windows are transparent: only what we draw is visible. */
+  background: transparent;
+}
+
+body {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

@@ -1,0 +1,125 @@
+/*
+ * The living orb. Every animation is transform or opacity only, so it runs on the compositor.
+ * Palette: deep teal body with a teal / lime / amber / coral swirl ("tidepool").
+ *
+ * Animations are paused (.orb--paused) whenever the orb is at rest. In a transparent window every
+ * animated frame costs the GPU a read-back; measured at 144 Hz that was ~48% of a core versus ~2%.
+ */
+.orb {
+  position: relative;
+  width: 56px;
+  height: 56px;
+}
+
+.orb__body {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: radial-gradient(circle at 34% 28%, #1ea596 0%, #0d5f58 58%, #083b37 100%);
+  box-shadow:
+    0 6px 16px rgb(8 59 55 / 0.32),
+    inset 0 0 0 1px rgb(255 255 255 / 0.14);
+  animation: orb-breathe 4200ms ease-in-out infinite;
+  animation-delay: var(--orb-breathe-delay, 0ms);
+  will-change: transform;
+}
+
+.orb__swirl {
+  position: absolute;
+  inset: -30%;
+  background: conic-gradient(from 0deg, #2dd4bf, #bef264 24%, #fbbf24 44%, #fb7185 62%, #14b8a6 82%, #2dd4bf);
+  filter: blur(9px);
+  opacity: 0.55;
+  animation: orb-spin 11000ms linear infinite;
+  animation-delay: var(--orb-spin-delay, 0ms);
+  will-change: transform;
+}
+
+/* A second, faster swirl that fades in while thinking. It only runs while thinking. */
+.orb__swirl--fast {
+  opacity: 0;
+  animation-duration: 1400ms;
+  animation-delay: 0ms;
+  animation-play-state: paused;
+  transition: opacity 420ms ease;
+}
+
+.orb--thinking .orb__swirl--fast {
+  opacity: 0.85;
+  animation-play-state: running;
+}
+
+/* At rest: freeze in the current pose (no snap back to the start). */
+.orb--paused .orb__body,
+.orb--paused .orb__swirl {
+  animation-play-state: paused;
+}
+
+/* Darkens the rim so the orb reads as a sphere, not a flat disc. */
+.orb__depth {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 55%, transparent 42%, rgb(4 36 33 / 0.55) 100%);
+}
+
+.orb__sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 24%, rgb(255 255 255 / 0.55), transparent 42%);
+}
+
+/* Ripples radiate outwards while thinking. They stay within the window's 16px margin. */
+.orb__ripple {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1.5px solid #2dd4bf;
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+.orb--thinking .orb__ripple {
+  animation: orb-ripple 1800ms cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.orb--thinking .orb__ripple--second {
+  animation-delay: -900ms;
+}
+
+@keyframes orb-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.035);
+  }
+}
+
+@keyframes orb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes orb-ripple {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.28);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orb__body,
+  .orb__swirl,
+  .orb--thinking .orb__ripple {
+    animation: none;
+  }
+}
