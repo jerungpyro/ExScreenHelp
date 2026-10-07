@@ -1,9 +1,12 @@
 {
   "name": "exscreenhelp",
   "productName": "ExScreenHelp",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "A floating on-screen assistant: select any area of your screen and ask DeepSeek about it.",
   "author": "bakasyah",
+  "license": "MIT",
+  "homepage": "https://github.com/jerungpyro/ExScreenHelp",
+  "repository": "github:jerungpyro/ExScreenHelp",
   "private": true,
   "main": "./out/main/index.js",
   "scripts": {
@@ -16,7 +19,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "make-icon": "node scripts/make-icon.mjs",
-    "package": "npm run build && electron-builder --win dir"
+    "package": "npm run build && electron-builder --win dir",
+    "release": "npm run build && electron-builder --win nsis zip --publish never --config.directories.output=release"
   },
   "dependencies": {
     "openai": "^7.23.0"

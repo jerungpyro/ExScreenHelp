@@ -1,6 +1,8 @@
-# Personal-use build: a portable folder with ExScreenHelp.exe (no installer, no code signing).
+# `npm run package` builds a portable folder in dist\win-unpacked for everyday use.
+# `npm run release` builds the public downloads in release\: an installer and a zip (not code-signed).
 appId: com.bakasyah.exscreenhelp
 productName: ExScreenHelp
+copyright: Copyright (c) 2026 bakasyah
 directories:
   output: dist
   buildResources: resources
@@ -11,3 +13,6 @@ files:
 win:
   target: dir
   icon: resources/icon.png
+  artifactName: ${productName}-${version}-win-${arch}.${ext}
+nsis:
+  artifactName: ${productName}-Setup-${version}.${ext}
