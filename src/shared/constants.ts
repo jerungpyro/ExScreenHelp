@@ -34,5 +34,8 @@ export const SNAP_DURATION_MS = 260
 export const STREAM_IDLE_TIMEOUT_MS = 120_000
 export const NON_STREAM_TIMEOUT_MS = 120_000
 
+/** Preferences are sent with every request, so keep them to a sensible size. */
+export const MAX_PREFERENCES_LENGTH = 10_000
+
 export const TITLE_MAX_LENGTH = 60
 export const NEW_CAPTURE_TITLE = 'New capture'

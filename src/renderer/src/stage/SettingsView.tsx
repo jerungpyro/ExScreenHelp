@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { MAX_PREFERENCES_LENGTH } from '../../../shared/constants'
 import { DEFAULT_PROVIDER, PROVIDER_IDS, PROVIDERS, type ProviderId } from '../../../shared/providers'
 import type { SettingsView as SettingsData, TestConnectionResult } from '../../../shared/types'
 
@@ -19,6 +20,8 @@ export function SettingsView({ notice, onNoticeDismissed }: SettingsViewProps) {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<TestConnectionResult | null>(null)
+  const [preferences, setPreferences] = useState('')
+  const [preferencesSaveState, setPreferencesSaveState] = useState<SaveState>('idle')
 
   const hasChanges =
     settings !== null &&
@@ -26,6 +29,7 @@ export function SettingsView({ notice, onNoticeDismissed }: SettingsViewProps) {
       model.trim() !== settings.model ||
       baseUrl.trim() !== settings.baseUrl ||
       apiKey.trim() !== '')
+  const preferencesChanged = settings !== null && preferences.trim() !== settings.preferences
 
   useEffect(() => {
     void window.api.settings.get().then((loaded) => {
@@ -33,6 +37,7 @@ export function SettingsView({ notice, onNoticeDismissed }: SettingsViewProps) {
       setProvider(loaded.provider)
       setModel(loaded.model)
       setBaseUrl(loaded.baseUrl)
+      setPreferences(loaded.preferences)
     })
   }, [])
 
@@ -105,6 +110,16 @@ export function SettingsView({ notice, onNoticeDismissed }: SettingsViewProps) {
     setTesting(false)
   }
 
+  async function savePreferences(event: FormEvent): Promise<void> {
+    event.preventDefault()
+    setPreferencesSaveState('saving')
+    const updated = await window.api.settings.save({ preferences })
+    setSettings(updated)
+    setPreferences(updated.preferences)
+    setPreferencesSaveState('saved')
+    setTimeout(() => setPreferencesSaveState('idle'), 1600)
+  }
+
   async function toggleStartup(): Promise<void> {
     if (settings === null) {
       return
@@ -122,6 +137,9 @@ export function SettingsView({ notice, onNoticeDismissed }: SettingsViewProps) {
   let saveLabel = 'Save'
   if (saveState === 'saving') saveLabel = 'Saving…'
   if (saveState === 'saved') saveLabel = 'Saved'
+  let preferencesSaveLabel = 'Save'
+  if (preferencesSaveState === 'saving') preferencesSaveLabel = 'Saving…'
+  if (preferencesSaveState === 'saved') preferencesSaveLabel = 'Saved'
 
   return (
     <div className="settings">
@@ -226,6 +244,30 @@ export function SettingsView({ notice, onNoticeDismissed }: SettingsViewProps) {
             {testResult.message}
           </p>
         )}
+      </form>
+
+      <form className="settings__group" onSubmit={(event) => void savePreferences(event)}>
+        <label className="field__label" htmlFor="preferences">
+          Preferences
+        </label>
+        <textarea
+          id="preferences"
+          className="field__input field__input--multiline"
+          maxLength={MAX_PREFERENCES_LENGTH}
+          placeholder="For example: Keep answers short. Explain code step by step. Use British spelling."
+          value={preferences}
+          onChange={(event) => setPreferences(event.target.value)}
+        />
+        <p className="field__help">The AI follows these in every answer, whichever provider you choose.</p>
+        <div className="settings__buttons">
+          <button
+            type="submit"
+            className="button"
+            disabled={preferencesSaveState === 'saving' || (!preferencesChanged && preferencesSaveState !== 'saved')}
+          >
+            {preferencesSaveLabel}
+          </button>
+        </div>
       </form>
 
       <div className="settings__group settings__group--row">

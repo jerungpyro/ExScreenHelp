@@ -28,9 +28,15 @@ describe('settings store', () => {
       provider: 'deepseek',
       model: 'deepseek-flash',
       baseUrl: 'https://api.deepseek.com',
+      preferences: '',
       launchAtStartup: false,
       bubble: { side: 'right', y: 240 }
     })
+  })
+
+  it('saves the preferences and reads them back', () => {
+    createSettingsStore(dir, fakeCrypto).update({ preferences: 'Answer in Malay.\nKeep it short.' })
+    expect(createSettingsStore(dir, fakeCrypto).get().preferences).toBe('Answer in Malay.\nKeep it short.')
   })
 
   it('uses the defaults when the settings file is damaged', () => {

@@ -33,17 +33,19 @@ You can change the model in Settings, as long as it accepts images. Each provide
 
 ## Using it
 
-- **Ask about something on screen:** click the orb, choose **Select area** and drag a box. The screen freezes while you select. Press **Esc** to cancel.
+- **Ask about something on screen:** click the orb, choose **Select area** (or **New selection** at the top of the panel) and drag a box. The screen freezes while you select. Press **Esc** to cancel.
 - **Follow up:** type in the box under the answer. **Enter** sends, **Shift+Enter** adds a new line.
-- **History:** reopen any earlier conversation from the orb's menu and keep asking.
+- **Pick up where you left off:** clicking the orb reopens the conversation you last had open. Click the orb at the top of the panel (or press **Esc**) to close it again.
+- **History:** reopen any earlier conversation and keep asking.
+- **Preferences:** in Settings, tell the AI how you like your answers, for example which language to use, how much detail to give, or how to explain code. They're sent with every question, whichever provider you use.
 - **Move the orb:** drag it anywhere. It snaps to the nearest screen edge and fades when you're not using it.
 - **Tray icon:** show or hide the orb, or quit the app.
-- **Settings:** provider, API key, model, API address and **Launch at startup**.
+- **Settings:** provider, API key, model, API address, Preferences and **Launch at startup**.
 
 ## Privacy
 
 - Only the area you select is saved or sent. The app briefly screenshots the whole screen to freeze it while you select, but keeps that image in memory only.
-- The selected area and your questions are sent to the provider you chose (or to the API address set in Settings), and nowhere else.
+- The selected area, your questions and your Preferences are sent to the provider you chose (or to the API address set in Settings), and nowhere else.
 - Your API keys are encrypted with Windows' built-in protection (DPAPI) and stored on your PC.
 - Conversations and their screenshots are stored on your PC in `%APPDATA%\ExScreenHelp\`. Uninstalling keeps them. To erase them, delete that folder.
 
@@ -64,7 +66,7 @@ Other commands: `npm test` (unit tests), `npm run typecheck`, `npm run make-icon
 
 `%APPDATA%\ExScreenHelp\`:
 
-- `settings.json`: provider, model, API address, bubble position, launch at startup
+- `settings.json`: provider, model, API address, preferences, bubble position, launch at startup
 - `apikey.bin`: your DeepSeek API key, encrypted with DPAPI (the name is kept from version 1.0, when DeepSeek was the only provider)
 - `apikey-openai.bin`, `apikey-claude.bin`, `apikey-gemini.bin`: the other providers' keys, encrypted the same way
 - `history\<id>\`: one folder per conversation, holding `conversation.json` and its screenshots (`capture.png`, `capture-2.png`, …)

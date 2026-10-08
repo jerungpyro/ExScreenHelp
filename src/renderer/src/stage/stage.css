@@ -17,6 +17,15 @@
   cursor: pointer;
 }
 
+/* The same press-in as the bubble. On the inner orb, because Motion owns the outer element's transform. */
+.stage-orb .orb {
+  transition: transform 90ms ease-out;
+}
+
+.stage-orb:active .orb {
+  transform: scale(0.94);
+}
+
 .panel-shadow {
   border-radius: var(--radius-surface);
   box-shadow: var(--shadow-panel);
@@ -740,6 +749,17 @@
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
+/* Grows with its text, between about four and ten lines. */
+.field__input--multiline {
+  height: auto;
+  min-height: 96px;
+  max-height: 228px;
+  padding: 8px 10px;
+  field-sizing: content;
+  resize: none;
+  line-height: 1.5;
+}
+
 .field__input--mono {
   font-family: var(--font-code);
   font-size: 13px;
@@ -825,7 +845,8 @@
   .segmented__option,
   .composer,
   .button,
-  .icon-button {
+  .icon-button,
+  .stage-orb .orb {
     transition: none;
   }
 }

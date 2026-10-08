@@ -18,6 +18,7 @@ let events: ChatEvent[]
 let script: Script
 let sentRequests: ChatRequest[]
 let hasKey: boolean
+let preferences: string
 let session: ChatSession
 
 const fakeClient: ChatClient = {
@@ -57,9 +58,11 @@ beforeEach(() => {
   events = []
   sentRequests = []
   hasKey = true
+  preferences = ''
   session = createChatSession({
     history,
     getClient: () => ({ providerName: 'DeepSeek', model: 'deepseek-flash', client: hasKey ? fakeClient : null }),
+    getPreferences: () => preferences,
     emit: (event) => events.push(event)
   })
 })
@@ -86,6 +89,22 @@ describe('chat session', () => {
     expect(state.conversation.title).toBe('Hello world')
     expect(state.conversation.messages[1]).toMatchObject({ role: 'assistant', text: 'Hello world', status: 'complete' })
     expect(history.load(conversation.id)?.messages).toHaveLength(2)
+  })
+
+  it("sends the user's current preferences with every request", async () => {
+    script = async function* () {
+      yield 'ok'
+    }
+    preferences = 'Answer in Malay.'
+    const { conversation, finished } = session.start(PNG)
+    await finished
+    expect(sentRequests[0].system).toContain('Answer in Malay.')
+
+    // Changed in Settings mid-conversation: the next answer follows the new preferences.
+    preferences = 'Use bullet points.'
+    await session.followUp(conversation.id, 'And this?')
+    expect(sentRequests[1].system).toContain('Use bullet points.')
+    expect(sentRequests[1].system).not.toContain('Answer in Malay.')
   })
 
   it('sends the capture as base64 PNG, with the system prompt, in the first request', async () => {
@@ -289,6 +308,7 @@ describe('chat session', () => {
     const freshSession = createChatSession({
       history,
       getClient: () => ({ providerName: 'DeepSeek', model: 'deepseek-flash', client: null }),
+      getPreferences: () => '',
       emit: () => {}
     })
     const state = freshSession.getState(conversation.id)

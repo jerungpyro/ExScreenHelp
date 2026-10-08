@@ -1,5 +1,6 @@
 import { app, ipcMain, shell } from 'electron'
 import { Channels } from '../shared/api'
+import { MAX_PREFERENCES_LENGTH } from '../shared/constants'
 import { isProviderId } from '../shared/providers'
 import type { SettingsPatch, SettingsView } from '../shared/types'
 import type { ClientSetup } from './chat/chatClient'
@@ -30,14 +31,14 @@ function orbOriginFrom(value: unknown): number | undefined {
 }
 
 function settingsView(settings: SettingsStore): SettingsView {
-  const { provider, model, baseUrl, launchAtStartup } = settings.get()
+  const { provider, model, baseUrl, preferences, launchAtStartup } = settings.get()
   const apiKeyHints = {
     deepseek: settings.apiKeyHint('deepseek'),
     openai: settings.apiKeyHint('openai'),
     claude: settings.apiKeyHint('claude'),
     gemini: settings.apiKeyHint('gemini')
   }
-  return { provider, model, baseUrl, launchAtStartup, apiKeyHints }
+  return { provider, model, baseUrl, preferences, launchAtStartup, apiKeyHints }
 }
 
 /** Registering at login only makes sense for the built app; in development it would register electron.exe. */
@@ -62,6 +63,9 @@ function cleanPatch(value: unknown): SettingsPatch {
   }
   if (isString(raw.baseUrl) && /^https?:\/\//i.test(raw.baseUrl.trim())) {
     patch.baseUrl = raw.baseUrl.trim().replace(/\/+$/, '')
+  }
+  if (isString(raw.preferences)) {
+    patch.preferences = raw.preferences.trim().slice(0, MAX_PREFERENCES_LENGTH)
   }
   if (typeof raw.launchAtStartup === 'boolean') {
     patch.launchAtStartup = raw.launchAtStartup

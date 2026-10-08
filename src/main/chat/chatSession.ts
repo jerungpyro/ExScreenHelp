@@ -13,6 +13,8 @@ export interface ChatSessionDeps {
   history: HistoryStore
   /** A client for the current settings. Its `client` is null when no API key is saved. */
   getClient(): ClientSetup
+  /** The user's preferences from Settings, sent with every request (empty when unset). */
+  getPreferences(): string
   /** Receives every state change and every streamed chunk (forwarded to the stage window). */
   emit(event: ChatEvent): void
   now?: () => Date
@@ -101,7 +103,8 @@ export function createChatSession(deps: ChatSessionDeps): ChatSession {
 
     let failure: unknown = null
     try {
-      const request = buildRequest(conversation, (captureName) => captureBase64(id, captureName))
+      const readCapture = (captureName: string) => captureBase64(id, captureName)
+      const request = buildRequest(conversation, readCapture, deps.getPreferences())
       for await (const piece of client.streamChat(request, current.controller.signal)) {
         current.text += piece
         deps.emit({ type: 'chunk', chunk: { conversationId: id, text: current.text } })

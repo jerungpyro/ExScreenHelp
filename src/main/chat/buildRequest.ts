@@ -1,14 +1,19 @@
 import type { Conversation } from '../../shared/types'
 import type { ChatRequest, ChatTurn } from './chatClient'
-import { ADDED_CAPTURE_INTRO, CAPTURE_INTRO, SYSTEM_PROMPT } from './systemPrompt'
+import { ADDED_CAPTURE_INTRO, CAPTURE_INTRO, systemPromptWith } from './systemPrompt'
 
 /**
  * Turns a stored conversation into a request for the AI provider.
  *
  * The providers keep no memory between requests, so every request carries the whole conversation,
  * including every screenshot. `readCapture` returns a capture's PNG, base64-encoded, from its file name.
+ * `preferences` are the user's own instructions from Settings.
  */
-export function buildRequest(conversation: Conversation, readCapture: (captureName: string) => string): ChatRequest {
+export function buildRequest(
+  conversation: Conversation,
+  readCapture: (captureName: string) => string,
+  preferences = ''
+): ChatRequest {
   const turns: ChatTurn[] = []
   let screenshotsSoFar = 0
 
@@ -32,5 +37,5 @@ export function buildRequest(conversation: Conversation, readCapture: (captureNa
     turns.push({ role: 'user', text: message.text })
   }
 
-  return { system: SYSTEM_PROMPT, turns }
+  return { system: systemPromptWith(preferences), turns }
 }

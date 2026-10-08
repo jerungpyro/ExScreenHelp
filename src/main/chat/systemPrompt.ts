@@ -8,6 +8,26 @@ export const SYSTEM_PROMPT = [
   'Use Markdown. Put all code in fenced code blocks with a language tag. Be concise.'
 ].join('\n')
 
+/**
+ * The built-in instruction, followed by the user's own preferences from Settings when there are any.
+ * The preferences come last and win, so "Give detailed answers" overrides "Be concise".
+ */
+export function systemPromptWith(preferences: string): string {
+  const trimmed = preferences.trim()
+  if (trimmed === '') {
+    return SYSTEM_PROMPT
+  }
+  return [
+    SYSTEM_PROMPT,
+    '',
+    "The user's preferences for every answer are below. Follow them. Where they conflict with the guidance above, follow the user's preferences.",
+    '',
+    '<user_preferences>',
+    trimmed,
+    '</user_preferences>'
+  ].join('\n')
+}
+
 /** Text that goes alongside the image in the first user message. */
 export const CAPTURE_INTRO = 'Here is the selected area.'
 

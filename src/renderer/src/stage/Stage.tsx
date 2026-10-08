@@ -38,6 +38,8 @@ export function Stage() {
   const [mode, setMode] = useState<Mode>('hidden')
   const [view, setView] = useState<PanelView>('history')
   const [chat, setChat] = useState<ChatState | null>(null)
+  const chatRef = useRef(chat)
+  chatRef.current = chat
   const [notice, setNotice] = useState<string | null>(null)
   // Increases on every open so the orb and surface start fresh at the bubble's current position.
   const [openCount, setOpenCount] = useState(0)
@@ -100,11 +102,16 @@ export function Stage() {
         setOrbOrigin(payload.orbOrigin)
         setMode('orb')
         setNotice(null)
-        if (payload.view === 'menu') {
+        let startView = payload.view
+        // Clicking the bubble asks for the menu. If a conversation was open before, go straight back to it instead.
+        if (startView === 'menu' && chatRef.current !== null) {
+          startView = 'conversation'
+        }
+        if (startView === 'menu') {
           pendingMode.current = 'menu'
         } else {
           pendingMode.current = 'panel'
-          setView(payload.view)
+          setView(startView)
         }
         if (payload.chat) {
           showConversation(payload.chat, payload.pendingCapture)
@@ -351,11 +358,9 @@ export function Stage() {
             finishClosing()
           }
         }}
-        onClick={() => {
-          if (modeRef.current === 'menu') {
-            requestClose()
-          }
-        }}
+        // Clicking the orb closes the menu, or the panel when the orb sits in its header.
+        onClick={requestClose}
+        title={mode === 'menu' || panelOpen ? 'Close' : undefined}
       >
         <Orb ref={orbRef} animated={orbAnimated} thinking={thinking} origin={orbOrigin} />
       </motion.div>

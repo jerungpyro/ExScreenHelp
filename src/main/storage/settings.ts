@@ -36,6 +36,7 @@ function defaultSettings(): Settings {
     provider: DEFAULT_PROVIDER,
     model: PROVIDERS[DEFAULT_PROVIDER].model,
     baseUrl: PROVIDERS[DEFAULT_PROVIDER].baseUrl,
+    preferences: '',
     launchAtStartup: false,
     // The real position is clamped to the screen when the bubble is first placed.
     bubble: { side: 'right', y: 240 }
@@ -77,6 +78,9 @@ function readSettingsFile(path: string): Settings {
   }
   if (typeof saved.baseUrl === 'string' && saved.baseUrl.trim() !== '') {
     settings.baseUrl = saved.baseUrl
+  }
+  if (typeof saved.preferences === 'string') {
+    settings.preferences = saved.preferences
   }
   if (typeof saved.launchAtStartup === 'boolean') {
     settings.launchAtStartup = saved.launchAtStartup

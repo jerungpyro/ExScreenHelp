@@ -53,6 +53,7 @@ async function start(): Promise<void> {
   const chatSession = createChatSession({
     history,
     getClient,
+    getPreferences: () => settings.get().preferences,
     emit: forwardChatEvents(stage)
   })
 

@@ -81,6 +81,8 @@ export interface Settings {
   provider: ProviderId
   model: string
   baseUrl: string
+  /** The user's own instructions for how answers are written, sent with every request. Empty when unset. */
+  preferences: string
   launchAtStartup: boolean
   bubble: BubbleAnchor
 }
@@ -90,6 +92,7 @@ export interface SettingsView {
   provider: ProviderId
   model: string
   baseUrl: string
+  preferences: string
   launchAtStartup: boolean
   /** For each provider: "•••• abcd" when a key is saved, otherwise null. */
   apiKeyHints: Record<ProviderId, string | null>
@@ -99,6 +102,7 @@ export interface SettingsPatch {
   provider?: ProviderId
   model?: string
   baseUrl?: string
+  preferences?: string
   launchAtStartup?: boolean
 }
 

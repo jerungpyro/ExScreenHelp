@@ -90,4 +90,19 @@ describe('buildRequest', () => {
       imagePngBase64: imageFor('capture-3.png')
     })
   })
+
+  it("adds the user's preferences after the built-in prompt, marked as theirs", () => {
+    const conversation = conversationWith([{ role: 'user', text: '', image: 'capture.png', createdAt: 't1' }])
+
+    const { system } = buildRequest(conversation, () => IMAGE, '  Explain code step by step.\n')
+
+    expect(system?.startsWith(SYSTEM_PROMPT)).toBe(true)
+    expect(system).toContain('<user_preferences>\nExplain code step by step.\n</user_preferences>')
+  })
+
+  it('sends only the built-in prompt when the preferences are blank', () => {
+    const conversation = conversationWith([{ role: 'user', text: '', image: 'capture.png', createdAt: 't1' }])
+
+    expect(buildRequest(conversation, () => IMAGE, '   \n ').system).toBe(SYSTEM_PROMPT)
+  })
 })
