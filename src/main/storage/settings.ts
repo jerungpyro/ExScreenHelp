@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node
 import { join } from 'node:path'
 import { DEFAULT_PROVIDER, isProviderId, PROVIDERS, type ProviderId } from '../../shared/providers'
 import { DEFAULT_SHORTCUT, isShortcutSetting } from '../../shared/shortcuts'
-import type { BubbleAnchor, Settings } from '../../shared/types'
+import type { BubbleAnchor, Point, Settings, Size } from '../../shared/types'
 
 const SETTINGS_FILE = 'settings.json'
 
@@ -41,8 +41,30 @@ function defaultSettings(): Settings {
     launchAtStartup: false,
     shortcut: DEFAULT_SHORTCUT,
     // The real position is clamped to the screen when the bubble is first placed.
-    bubble: { side: 'right', y: 240 }
+    bubble: { side: 'right', y: 240 },
+    panelSize: null,
+    panelPosition: null
   }
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value)
+}
+
+function isSize(value: unknown): value is Size {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+  const candidate = value as Partial<Size>
+  return isFiniteNumber(candidate.width) && isFiniteNumber(candidate.height) && candidate.width > 0 && candidate.height > 0
+}
+
+function isPoint(value: unknown): value is Point {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+  const candidate = value as Partial<Point>
+  return isFiniteNumber(candidate.x) && isFiniteNumber(candidate.y)
 }
 
 function isBubbleAnchor(value: unknown): value is BubbleAnchor {
@@ -93,6 +115,13 @@ function readSettingsFile(path: string): Settings {
   if (isBubbleAnchor(saved.bubble)) {
     settings.bubble = { side: saved.bubble.side, y: saved.bubble.y }
   }
+  // Whether these still fit the screen is checked each time the panel opens.
+  if (isSize(saved.panelSize)) {
+    settings.panelSize = { width: saved.panelSize.width, height: saved.panelSize.height }
+  }
+  if (isPoint(saved.panelPosition)) {
+    settings.panelPosition = { x: saved.panelPosition.x, y: saved.panelPosition.y }
+  }
   return settings
 }
 
@@ -101,7 +130,12 @@ export function createSettingsStore(dir: string, crypto: SecretCrypto): Settings
   let current = readSettingsFile(settingsPath)
 
   function get(): Settings {
-    return { ...current, bubble: { ...current.bubble } }
+    return {
+      ...current,
+      bubble: { ...current.bubble },
+      panelSize: current.panelSize === null ? null : { ...current.panelSize },
+      panelPosition: current.panelPosition === null ? null : { ...current.panelPosition }
+    }
   }
 
   function update(patch: Partial<Settings>): Settings {

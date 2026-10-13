@@ -31,8 +31,24 @@ describe('settings store', () => {
       preferences: '',
       launchAtStartup: false,
       shortcut: 'Ctrl+Alt+Space',
-      bubble: { side: 'right', y: 240 }
+      bubble: { side: 'right', y: 240 },
+      panelSize: null,
+      panelPosition: null
     })
+  })
+
+  it('saves where the panel was put and how big it is, and reads them back', () => {
+    createSettingsStore(dir, fakeCrypto).update({ panelSize: { width: 600, height: 700 }, panelPosition: { x: 300, y: 150 } })
+    const settings = createSettingsStore(dir, fakeCrypto).get()
+    expect(settings.panelSize).toEqual({ width: 600, height: 700 })
+    expect(settings.panelPosition).toEqual({ x: 300, y: 150 })
+  })
+
+  it('ignores a damaged panel size or position', () => {
+    writeFileSync(join(dir, 'settings.json'), JSON.stringify({ panelSize: { width: -5, height: 700 }, panelPosition: { x: 'left', y: 3 } }))
+    const settings = createSettingsStore(dir, fakeCrypto).get()
+    expect(settings.panelSize).toBeNull()
+    expect(settings.panelPosition).toBeNull()
   })
 
   it('saves the chosen shortcut, or that it is off, and reads it back', () => {

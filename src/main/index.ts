@@ -62,7 +62,7 @@ async function start(): Promise<void> {
 
   const controller = createController({ bubble, stage, settings, history, chatSession })
   const shortcut = createGlobalShortcut(() => void controller.shortcutPressed())
-  registerIpc({ bubble, controller, chatSession, history, settings, shortcut, getClient })
+  registerIpc({ bubble, stage, controller, chatSession, history, settings, shortcut, getClient })
   applyLaunchAtStartup(settings.get().launchAtStartup)
   shortcut.set(settings.get().shortcut)
   // Hand the shortcut back to Windows as we quit, as Electron recommends.

@@ -1,6 +1,7 @@
 import { ArrowLeftIcon, ClockCounterClockwiseIcon, GearSixIcon, SelectionIcon, XIcon } from '@phosphor-icons/react'
 import { AnimatePresence, motion } from 'motion/react'
 import type { ChatState } from '../../../shared/types'
+import type { PressHandlers } from '../components/usePressOrDrag'
 import type { ComposerPatch, ComposerState } from './composer'
 import { ConversationView } from './ConversationView'
 import { HistoryView } from './HistoryView'
@@ -23,6 +24,8 @@ interface PanelProps {
   onConversationDeleted(conversationId: string): void
   onNoticeDismissed(): void
   onClose(): void
+  /** Dragging the header's empty space moves the panel. */
+  headerPress: PressHandlers
 }
 
 function titleFor(view: PanelView, chat: ChatState | null): string {
@@ -32,14 +35,23 @@ function titleFor(view: PanelView, chat: ChatState | null): string {
 }
 
 export function Panel(props: PanelProps) {
-  const { view, chat, notice, onNavigate, onSelectArea, onClose } = props
+  const { view, chat, notice, onNavigate, onSelectArea, onClose, headerPress } = props
   // Without a conversation there is nothing to show, so fall back to History.
   const shownView: PanelView = view === 'conversation' && chat === null ? 'history' : view
   const canGoBack = shownView !== 'conversation' && chat !== null
 
   return (
     <div className="panel">
-      <header className="panel__header">
+      <header
+        className="panel__header"
+        {...headerPress}
+        onPointerDown={(event) => {
+          // Its buttons are buttons, not handles.
+          if (event.target instanceof Element && event.target.closest('button') === null) {
+            headerPress.onPointerDown(event)
+          }
+        }}
+      >
         {/* The real orb is drawn on top of this slot by the stage. */}
         <div className="panel__orb-slot" />
         {canGoBack && (

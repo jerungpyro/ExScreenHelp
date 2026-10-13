@@ -17,6 +17,15 @@
   cursor: pointer;
 }
 
+/* In the open panel the orb is also the handle for moving it. */
+.stage-orb--in-panel {
+  cursor: grab;
+}
+
+.stage-orb--dragging {
+  cursor: grabbing;
+}
+
 /* The same press-in as the bubble. On the inner orb, because Motion owns the outer element's transform. */
 .stage-orb .orb {
   transition: transform 90ms ease-out;
@@ -24,6 +33,81 @@
 
 .stage-orb:active .orb {
   transform: scale(0.94);
+}
+
+/* Invisible strips along the panel's edges and corners for resizing it, half inside and half outside. */
+.resize-handles {
+  position: absolute;
+  pointer-events: none;
+}
+
+.resize-handle {
+  position: absolute;
+  pointer-events: auto;
+}
+
+.resize-handle--n,
+.resize-handle--s {
+  left: 14px;
+  right: 14px;
+  height: 8px;
+  cursor: ns-resize;
+}
+
+.resize-handle--n {
+  top: -4px;
+}
+
+.resize-handle--s {
+  bottom: -4px;
+}
+
+.resize-handle--e,
+.resize-handle--w {
+  top: 14px;
+  bottom: 14px;
+  width: 8px;
+  cursor: ew-resize;
+}
+
+.resize-handle--e {
+  right: -4px;
+}
+
+.resize-handle--w {
+  left: -4px;
+}
+
+.resize-handle--ne,
+.resize-handle--nw,
+.resize-handle--se,
+.resize-handle--sw {
+  width: 18px;
+  height: 18px;
+}
+
+.resize-handle--nw {
+  top: -4px;
+  left: -4px;
+  cursor: nwse-resize;
+}
+
+.resize-handle--se {
+  right: -4px;
+  bottom: -4px;
+  cursor: nwse-resize;
+}
+
+.resize-handle--ne {
+  top: -4px;
+  right: -4px;
+  cursor: nesw-resize;
+}
+
+.resize-handle--sw {
+  bottom: -4px;
+  left: -4px;
+  cursor: nesw-resize;
 }
 
 .panel-shadow {

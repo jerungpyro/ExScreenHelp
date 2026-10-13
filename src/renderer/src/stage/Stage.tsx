@@ -1,12 +1,16 @@
 import { AnimatePresence, motion, useReducedMotion, type Transition } from 'motion/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
+import { movePanel, resizePanel, type ResizeEdge } from '../../../shared/geometry'
 import { missingKeyNotice } from '../../../shared/providers'
-import type { ChatState, StageLayout } from '../../../shared/types'
+import type { ChatState, Rect, StageLayout } from '../../../shared/types'
 import { Orb, type OrbHandle } from '../components/Orb'
+import { usePressOrDrag } from '../components/usePressOrDrag'
 import { EMPTY_COMPOSER, type ComposerPatch, type ComposerState } from './composer'
 import { Menu } from './Menu'
 import { Panel, type PanelView } from './Panel'
+import { ResizeHandles } from './ResizeHandles'
+import { CLICKABLE, useClickThrough } from './useClickThrough'
 
 /**
  * hidden  – nothing drawn; the window lets clicks through
@@ -60,6 +64,16 @@ export function Stage() {
   const reduceMotion = useReducedMotion()
   const morph = reduceMotion ? INSTANT : MORPH
 
+  // Where the panel is, in window coordinates: where main laid it out, then wherever the user moves it.
+  const [panelRect, setPanelRect] = useState<Rect | null>(null)
+  const panelRectRef = useRef(panelRect)
+  panelRectRef.current = panelRect
+  // Set while the user moves or resizes the panel, so everything follows the pointer at once.
+  const [adjusting, setAdjusting] = useState(false)
+  const adjustStart = useRef<{ rect: Rect; edge: ResizeEdge | null } | null>(null)
+
+  const { recheck, hold } = useClickThrough(mode === 'menu' || mode === 'panel')
+
   /**
    * Shows a conversation. Switching to a different one clears the follow-up box (deleting any
    * screenshot that was attached but never sent). `pendingCapture` attaches a newly added screenshot,
@@ -105,6 +119,7 @@ export function Stage() {
     return api.stage.onOpen((payload) => {
       flushSync(() => {
         setLayout(payload.layout)
+        setPanelRect(payload.layout.panel)
         setOpenCount((count) => count + 1)
         setOrbOrigin(payload.orbOrigin)
         setMode('orb')
@@ -129,8 +144,12 @@ export function Stage() {
   }, [])
 
   useEffect(() => {
-    return api.stage.onActivate(() => setMode(pendingMode.current))
-  }, [])
+    return api.stage.onActivate(() => {
+      setMode(pendingMode.current)
+      // The window takes clicks as it opens. Check whether the pointer is actually over anything.
+      afterPaint(() => void recheck())
+    })
+  }, [recheck])
 
   useEffect(() => {
     return api.stage.onClear(() => {
@@ -284,14 +303,74 @@ export function Stage() {
     }
   }
 
+  // ----- Moving and resizing the panel -----
+
+  /** `edge` is the edge or corner being dragged to resize, or null to move the whole panel. */
+  function startAdjusting(edge: ResizeEdge | null): void {
+    const rect = panelRectRef.current
+    if (modeRef.current !== 'panel' || rect === null) {
+      return
+    }
+    adjustStart.current = { rect, edge }
+    setAdjusting(true)
+    hold(true)
+  }
+
+  /** `dx` and `dy` are how far the pointer is from where the drag began. */
+  function adjust(dx: number, dy: number): void {
+    const start = adjustStart.current
+    if (start === null || layout === null) {
+      return
+    }
+    let next: Rect
+    if (start.edge === null) {
+      next = movePanel(start.rect, dx, dy, layout.panelArea)
+    } else {
+      next = resizePanel(start.rect, start.edge, dx, dy, layout.panelArea)
+    }
+    panelRectRef.current = next
+    setPanelRect(next)
+  }
+
+  function finishAdjusting(): void {
+    const rect = panelRectRef.current
+    if (adjustStart.current === null || rect === null) {
+      return
+    }
+    adjustStart.current = null
+    setAdjusting(false)
+    hold(false)
+    api.stage.placePanel(rect)
+    // After making the panel smaller, the pointer may no longer be over it.
+    void recheck()
+  }
+
+  // Clicking the orb closes the menu or the panel. In the open panel, dragging it moves the panel.
+  const orbPress = usePressOrDrag({
+    onDragStart: () => startAdjusting(null),
+    onDragMove: adjust,
+    onDragEnd: finishAdjusting,
+    onClick: requestClose
+  })
+  // The header's empty space moves the panel too, like a window's title bar.
+  const headerPress = usePressOrDrag({
+    onDragStart: () => startAdjusting(null),
+    onDragMove: adjust,
+    onDragEnd: finishAdjusting,
+    onClick: () => {}
+  })
+
   // ----- Drawing -----
 
   if (layout === null || mode === 'hidden') {
     return null
   }
 
-  const { bubble, panel } = layout
+  const { bubble } = layout
+  const panel = panelRect ?? layout.panel
   const panelOpen = mode === 'panel'
+  // Springs for opening and closing; none while the user is dragging the panel around.
+  const morphTransition = adjusting ? INSTANT : morph
   const surfaceShown = panelOpen || (mode === 'closing' && closingFrom.current === 'panel')
   const surfaceRect = panelOpen ? panel : bubble
 
@@ -302,6 +381,13 @@ export function Stage() {
   const thinking = chat !== null && chat.busy && panelOpen && view === 'conversation'
   // Animate around the handovers (so it matches the bubble) and while thinking; rest while reading.
   const orbAnimated = !panelOpen || thinking
+
+  const orbClassNames = ['stage-orb']
+  if (panelOpen) orbClassNames.push('stage-orb--in-panel')
+  if (orbPress.dragging) orbClassNames.push('stage-orb--dragging')
+  let orbTitle: string | undefined
+  if (panelOpen) orbTitle = 'Click to close, drag to move'
+  if (mode === 'menu') orbTitle = 'Close'
 
   return (
     <>
@@ -322,7 +408,7 @@ export function Stage() {
         key={`surface-${openCount}`}
         className="panel-surface"
         layout
-        transition={{ layout: morph, opacity: { duration: 0.1 } }}
+        transition={{ layout: morphTransition, opacity: { duration: 0.1 } }}
         style={{
           left: surfaceRect.x,
           top: surfaceRect.y,
@@ -339,6 +425,7 @@ export function Stage() {
           <motion.div
             key="panel"
             className="panel-frame"
+            {...CLICKABLE}
             style={{ left: panel.x, top: panel.y, width: panel.width, height: panel.height }}
             initial={{ opacity: 0, y: reduceMotion ? 0 : 6 }}
             animate={{ opacity: 1, y: 0, transition: { delay: reduceMotion ? 0 : 0.1, duration: 0.24, ease: [0.16, 1, 0.3, 1] } }}
@@ -364,10 +451,15 @@ export function Stage() {
               }}
               onNoticeDismissed={() => setNotice(null)}
               onClose={requestClose}
+              headerPress={headerPress.handlers}
             />
           </motion.div>
         )}
       </AnimatePresence>
+
+      {panelOpen && (
+        <ResizeHandles rect={panel} onResizeStart={startAdjusting} onResize={adjust} onResizeEnd={finishAdjusting} />
+      )}
 
       <AnimatePresence
         onExitComplete={() => {
@@ -392,18 +484,21 @@ export function Stage() {
       {/* The orb: over the bubble, or shrunk into the panel header. Drawn last so it is on top. */}
       <motion.div
         key={`orb-${openCount}`}
-        className="stage-orb"
+        className={orbClassNames.join(' ')}
+        {...CLICKABLE}
         initial={false}
         animate={orbTarget}
-        transition={morph}
+        transition={morphTransition}
         onAnimationComplete={() => {
           if (modeRef.current === 'closing' && closingFrom.current === 'panel') {
             finishClosing()
+          } else if (modeRef.current === 'panel') {
+            // The panel may have opened around a pointer that stood still.
+            void recheck()
           }
         }}
-        // Clicking the orb closes the menu, or the panel when the orb sits in its header.
-        onClick={requestClose}
-        title={mode === 'menu' || panelOpen ? 'Close' : undefined}
+        {...orbPress.handlers}
+        title={orbTitle}
       >
         <Orb ref={orbRef} animated={orbAnimated} thinking={thinking} origin={orbOrigin} />
       </motion.div>

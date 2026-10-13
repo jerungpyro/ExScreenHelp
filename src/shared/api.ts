@@ -2,6 +2,7 @@ import type { ProviderId } from './providers'
 import type {
   BubbleVisibility,
   ChatChunk,
+  Point,
   ChatState,
   ConversationSummary,
   Rect,
@@ -53,6 +54,12 @@ export interface ExScreenApi {
     addScreenshot(conversationId: string): void
     /** The keyboard shortcut was pressed while the stage is open; the stage decides what it selects for. */
     onShortcut(callback: () => void): Unsubscribe
+    /** True while the pointer is over the orb, menu or panel, so the window should take clicks. Otherwise they pass through. */
+    setInteractive(interactive: boolean): void
+    /** Where the mouse pointer is, in window coordinates, for when content moved under it without the mouse moving. */
+    cursorPosition(): Promise<Point>
+    /** The user finished moving or resizing the panel to `rect` (window coordinates); main remembers it. */
+    placePanel(rect: Rect): void
   }
 
   chat: {
@@ -118,6 +125,9 @@ export const Channels = {
   stageSelectArea: 'stage:select-area',
   stageAddScreenshot: 'stage:add-screenshot',
   stageShortcut: 'stage:shortcut',
+  stageSetInteractive: 'stage:set-interactive',
+  stageCursorPosition: 'stage:cursor-position',
+  stagePlacePanel: 'stage:place-panel',
 
   chatState: 'chat:state',
   chatChunk: 'chat:chunk',

@@ -29,7 +29,10 @@ const api: ExScreenApi = {
     closed: (orbOrigin) => ipcRenderer.send(Channels.stageClosed, orbOrigin),
     selectArea: () => ipcRenderer.send(Channels.stageSelectArea),
     addScreenshot: (conversationId) => ipcRenderer.send(Channels.stageAddScreenshot, conversationId),
-    onShortcut: (callback) => subscribe(Channels.stageShortcut, () => callback())
+    onShortcut: (callback) => subscribe(Channels.stageShortcut, () => callback()),
+    setInteractive: (interactive) => ipcRenderer.send(Channels.stageSetInteractive, interactive),
+    cursorPosition: () => ipcRenderer.invoke(Channels.stageCursorPosition),
+    placePanel: (rect) => ipcRenderer.send(Channels.stagePlacePanel, rect)
   },
 
   chat: {

@@ -36,6 +36,8 @@ export interface StageLayout {
   bubble: Rect
   menu: Rect
   panel: Rect
+  /** Where the panel may be moved and resized to. */
+  panelArea: Rect
   side: BubbleSide
 }
 
@@ -87,6 +89,10 @@ export interface Settings {
   /** The keyboard shortcut that selects an area from anywhere (an Electron accelerator), or '' when off. */
   shortcut: string
   bubble: BubbleAnchor
+  /** The panel's size once the user has resized it, or null for the default size. */
+  panelSize: Size | null
+  /** Where the user moved the panel (its top-left corner on screen), or null to open it beside the bubble. */
+  panelPosition: Point | null
 }
 
 /** What the renderer is allowed to see about settings. API keys themselves never leave the main process. */

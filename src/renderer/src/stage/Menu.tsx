@@ -2,6 +2,7 @@ import { ClockCounterClockwiseIcon, GearSixIcon, SelectionIcon } from '@phosphor
 import { motion } from 'motion/react'
 import { useEffect, useRef, type ReactNode } from 'react'
 import type { BubbleSide, Rect } from '../../../shared/types'
+import { CLICKABLE } from './useClickThrough'
 
 interface MenuProps {
   rect: Rect
@@ -43,6 +44,7 @@ export function Menu({ rect, side, reduceMotion, onSelectArea, onHistory, onSett
   return (
     <motion.div
       className="menu"
+      {...CLICKABLE}
       role="menu"
       style={{ left: rect.x, top: rect.y, width: rect.width, height: rect.height, transformOrigin: origin }}
       initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9, x: towardsBubble }}

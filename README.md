@@ -18,6 +18,7 @@ It works with **DeepSeek, OpenAI, Claude and Gemini**, using your own API key. U
 - **Follow-up questions**, with more screenshots or pasted images (**Ctrl+V**) along the way.
 - **Answers as they're written**, in Markdown with highlighted code and Copy buttons.
 - **History** of every conversation, with its screenshots, to reopen and continue later.
+- **A panel you can move and resize**, that reopens where you left it.
 - **Preferences** that tell the AI how you like your answers (language, detail, how to explain code).
 - **Light and dark mode**, following Windows.
 - **Private by design:** your keys are encrypted, your history stays on your PC, and requests go straight to the provider you chose.
@@ -55,6 +56,7 @@ You can change the model in Settings, as long as it accepts images. Each provide
 - **Keyboard shortcut:** press **Ctrl+Alt+Space** from any app to go straight to selecting an area. With a chat open, it adds a screenshot to your next follow-up instead. Choose a different shortcut, or turn it off, in Settings.
 - **Follow up:** type in the box under the answer. **Enter** sends, **Shift+Enter** adds a new line. To show the AI something else, add a screenshot with the button beside the box, or paste an image (**Ctrl+V**), for example one taken with **Win+Shift+S**. Large pasted images are scaled down to 2000 pixels on their longest side.
 - **Copy an answer:** click **Copy** under it. You get the Markdown, so headings, lists and code blocks keep their formatting when pasted into a document or chat. Each code block also has its own **Copy**.
+- **Move or resize the panel:** drag the orb at its top left, or the empty part of its header, to move it. Drag any edge or corner to resize it. It reopens where you left it. If you later drag the orb (when the panel is closed) to a new spot, the panel opens beside it again, at the size you chose.
 - **Pick up where you left off:** clicking the orb reopens the conversation you last had open. Click the orb at the top of the panel (or press **Esc**) to close it again.
 - **History:** reopen any earlier conversation and keep asking, or delete it.
 - **Preferences:** in Settings, tell the AI how you like your answers, for example which language to use, how much detail to give, or how to explain code. They're sent with every question, whichever provider you use.
@@ -76,7 +78,7 @@ ExScreenHelp is an [Electron](https://www.electronjs.org/) app written in TypeSc
 | Window | What it does |
 | --- | --- |
 | **Bubble** | Holds the orb. It lets clicks pass through everywhere except the orb itself, snaps to the nearest screen edge, and stops animating when idle so it costs almost nothing while you work. |
-| **Stage** | Draws the menu and the panel. It is never hidden: when closed it draws nothing and lets clicks through. That way it can paint an orb exactly on top of the bubble's before taking over, so the orb seems to grow into the panel without a flicker. |
+| **Stage** | Draws the menu and the panel. It is never hidden: when closed it draws nothing and lets clicks through. That way it can paint an orb exactly on top of the bubble's before taking over, so the orb seems to grow into the panel without a flicker. While open it covers the screen, so you can move and resize the panel inside it smoothly, and it only takes clicks where something is drawn. |
 | **Overlay** | Created for each selection. It covers the screen with a still image of it, and you drag your box on that. |
 
 ### From a selection to an answer
@@ -129,7 +131,7 @@ sequenceDiagram
 
 `%APPDATA%\ExScreenHelp\`:
 
-- `settings.json`: provider, model, API address, preferences, keyboard shortcut, bubble position, launch at startup
+- `settings.json`: provider, model, API address, preferences, keyboard shortcut, bubble position, panel position and size, launch at startup
 - `apikey.bin`: your DeepSeek API key, encrypted with DPAPI (the name is kept from version 1.0, when DeepSeek was the only provider)
 - `apikey-openai.bin`, `apikey-claude.bin`, `apikey-gemini.bin`: the other providers' keys, encrypted the same way
 - `history\<id>\`: one folder per conversation, holding `conversation.json` and its screenshots (`capture.png`, `capture-2.png`, …)

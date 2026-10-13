@@ -13,6 +13,9 @@ export interface PressOrDragCallbacks {
   onClick(): void
 }
 
+/** The pointer handlers to spread on the pressed element. */
+export type PressHandlers = ReturnType<typeof usePressOrDrag>['handlers']
+
 interface Press {
   startX: number
   startY: number

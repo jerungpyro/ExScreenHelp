@@ -17,7 +17,7 @@ npm run release    # installer + zip in release\ (unsigned)
 - `src/main/`: the Electron main process, organised by feature: `capture/`, `chat/` (provider clients, request building, error mapping), `layout/` (pure geometry), `storage/` (history, settings, encrypted keys), `windows/` (bubble, stage, overlay). `controller.ts` coordinates the windows; `ipc.ts` registers every IPC handler; `shortcut.ts` holds the global keyboard shortcut.
 - `src/preload/index.ts`: exposes the typed `window.api`.
 - `src/renderer/`: three pages, one per window: `bubble` (the idle orb), `stage` (menu and panel), `overlay` (full-screen selection).
-- `src/shared/`: types, constants, the provider list and the IPC contract (`api.ts`), shared by all processes.
+- `src/shared/`: types, constants, the provider list, panel geometry (`geometry.ts`) and the IPC contract (`api.ts`), shared by all processes.
 
 ## Conventions
 
@@ -32,5 +32,5 @@ npm run release    # installer + zip in release\ (unsigned)
 
 - `ELECTRON_RUN_AS_NODE` (set by VS Code's terminal) makes `npm run dev` crash with `registerSchemesAsPrivileged` undefined. Clear it first.
 - `EXSCREENHELP_USER_DATA` points a copy at its own data folder and single-instance lock, so a test build can run next to the installed one. The keyboard shortcut is still system-wide: whichever copy starts second shows it as taken in Settings.
-- The stage window is never hidden: it draws nothing and lets clicks through when closed, so it can paint its orb before taking over from the bubble.
+- The stage window is never hidden: it draws nothing and lets clicks through when closed, so it can paint its orb before taking over from the bubble. While open it covers the whole work area (so the panel moves and resizes inside it) and takes clicks only while the pointer is over something marked with `CLICKABLE` (`stage/useClickThrough.ts`). Anything new that takes clicks needs that mark, or clicks fall through to the app below.
 - DeepSeek's key file is `apikey.bin` (from v1.0); other providers use `apikey-<id>.bin`.

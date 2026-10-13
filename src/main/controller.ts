@@ -1,7 +1,8 @@
 import { Notification, screen } from 'electron'
 import { Channels } from '../shared/api'
+import { fitPanel, panelArea } from '../shared/geometry'
 import { missingKeyNotice } from '../shared/providers'
-import type { ChatState, StageView } from '../shared/types'
+import type { ChatState, Rect, StageLayout, StageView } from '../shared/types'
 import { captureDisplay } from './capture/capture'
 import { toPhysicalRect } from './capture/crop'
 import type { ChatEvent, ChatSession } from './chat/chatSession'
@@ -26,6 +27,8 @@ export interface Controller {
   selectArea(addToConversationId?: string): Promise<void>
   /** The keyboard shortcut was pressed, from anywhere. */
   shortcutPressed(): Promise<void>
+  /** The user moved or resized the panel to `rect`, in the open stage window's coordinates. */
+  panelPlaced(rect: Rect): void
   /** Closes everything immediately (tray "Hide", display changes). */
   closeImmediately(): Promise<void>
   /** Re-positions the bubble after the screen layout changed. */
@@ -57,6 +60,8 @@ export function createController({ bubble, stage, settings, history, chatSession
   let stageOpen = false
   // Set while a transition is running so double-clicks can't start a second one.
   let transitioning = false
+  // The layout the stage was last opened with, to turn its window coordinates into screen ones.
+  let openLayout: StageLayout | null = null
 
   function workArea() {
     return screen.getPrimaryDisplay().workArea
@@ -64,8 +69,10 @@ export function createController({ bubble, stage, settings, history, chatSession
 
   /** Opens the stage so its orb covers the bubble, then hands over from bubble to stage. */
   async function openStage(view: StageView, options: OpenStageOptions = {}): Promise<void> {
-    const anchor = clampAnchor(settings.get().bubble, workArea())
-    const layout = computeStageLayout(anchor, workArea())
+    const { bubble: savedAnchor, panelSize, panelPosition } = settings.get()
+    const anchor = clampAnchor(savedAnchor, workArea())
+    const layout = computeStageLayout(anchor, workArea(), { size: panelSize, position: panelPosition })
+    openLayout = layout
     let chat: ChatState | undefined
     if (options.conversationId) {
       chat = chatSession.getState(options.conversationId) ?? undefined
@@ -196,6 +203,19 @@ export function createController({ bubble, stage, settings, history, chatSession
     }
   }
 
+  function panelPlaced(rect: Rect): void {
+    if (!stageOpen || openLayout === null) {
+      return
+    }
+    const onScreen = { ...rect, x: rect.x + openLayout.windowBounds.x, y: rect.y + openLayout.windowBounds.y }
+    // It comes from the renderer, so make sure it fits the screen.
+    const placed = fitPanel(onScreen, panelArea(workArea()))
+    settings.update({
+      panelSize: { width: placed.width, height: placed.height },
+      panelPosition: { x: placed.x, y: placed.y }
+    })
+  }
+
   async function closeImmediately(): Promise<void> {
     if (stageOpen) {
       await stage.clear()
@@ -225,6 +245,7 @@ export function createController({ bubble, stage, settings, history, chatSession
     stageClosed,
     selectArea,
     shortcutPressed,
+    panelPlaced,
     closeImmediately,
     refreshPosition,
     recoverAfterReload

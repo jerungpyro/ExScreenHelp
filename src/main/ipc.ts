@@ -1,6 +1,7 @@
 import { app, ipcMain, shell } from 'electron'
 import { Channels } from '../shared/api'
 import { MAX_PREFERENCES_LENGTH } from '../shared/constants'
+import { isRect } from '../shared/geometry'
 import { isProviderId } from '../shared/providers'
 import { isShortcutSetting } from '../shared/shortcuts'
 import type { SettingsPatch, SettingsView } from '../shared/types'
@@ -13,9 +14,11 @@ import type { GlobalShortcut } from './shortcut'
 import { isValidCaptureName, isValidId, type HistoryStore } from './storage/history'
 import type { SettingsStore } from './storage/settings'
 import type { BubbleWindow } from './windows/bubbleWindow'
+import type { StageWindow } from './windows/stageWindow'
 
 interface IpcDeps {
   bubble: BubbleWindow
+  stage: StageWindow
   controller: Controller
   chatSession: ChatSession
   history: HistoryStore
@@ -89,13 +92,14 @@ function cleanPatch(value: unknown): SettingsPatch {
   return patch
 }
 
-export function registerIpc({ bubble, controller, chatSession, history, settings, shortcut, getClient }: IpcDeps): void {
+export function registerIpc({ bubble, stage, controller, chatSession, history, settings, shortcut, getClient }: IpcDeps): void {
   // ----- Bubble -----
   ipcMain.on(Channels.bubbleDragStart, () => bubble.startDrag())
   ipcMain.on(Channels.bubbleDragMove, () => bubble.dragMove())
   ipcMain.on(Channels.bubbleDragEnd, () => {
     const anchor = bubble.endDrag()
-    settings.update({ bubble: anchor })
+    // Moving the orb brings the panel back beside it. The size the user chose is kept.
+    settings.update({ bubble: anchor, panelPosition: null })
   })
   ipcMain.on(Channels.bubbleClick, (_event, orbOrigin: unknown) => void controller.bubbleClicked(orbOriginFrom(orbOrigin)))
   ipcMain.on(Channels.bubbleSetInteractive, (_event, interactive: unknown) => bubble.setInteractive(interactive === true))
@@ -106,6 +110,13 @@ export function registerIpc({ bubble, controller, chatSession, history, settings
   ipcMain.on(Channels.stageAddScreenshot, (_event, id: unknown) => {
     if (isString(id) && isValidId(id)) {
       void controller.selectArea(id)
+    }
+  })
+  ipcMain.on(Channels.stageSetInteractive, (_event, interactive: unknown) => stage.setInteractive(interactive === true))
+  ipcMain.handle(Channels.stageCursorPosition, () => stage.cursorPosition())
+  ipcMain.on(Channels.stagePlacePanel, (_event, rect: unknown) => {
+    if (isRect(rect)) {
+      controller.panelPlaced(rect)
     }
   })
 

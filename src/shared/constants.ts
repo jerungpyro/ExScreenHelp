@@ -6,8 +6,12 @@ export const WINDOW_MARGIN = 16
 /** Gap between the bubble or panel and the edge of the work area. */
 export const EDGE_MARGIN = 8
 
+/** The panel's size until the user resizes it. */
 export const PANEL_WIDTH = 420
 export const PANEL_HEIGHT = 600
+/** The panel can't be resized smaller than this, so the header and the composer always fit. */
+export const PANEL_MIN_WIDTH = 360
+export const PANEL_MIN_HEIGHT = 420
 
 export const MENU_WIDTH = 188
 export const MENU_ITEM_HEIGHT = 40
