@@ -1,24 +1,8 @@
-import { CheckIcon, CopyIcon } from '@phosphor-icons/react'
-import { isValidElement, memo, useRef, useState, type ComponentPropsWithoutRef, type ReactNode } from 'react'
+import { isValidElement, memo, useRef, type ComponentPropsWithoutRef, type ReactNode } from 'react'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import rehypeHighlight from 'rehype-highlight'
 import remarkGfm from 'remark-gfm'
-
-const COPIED_FEEDBACK_MS = 1400
-
-async function copyText(text: string): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(text)
-  } catch {
-    // Fallback for when the async clipboard API is unavailable.
-    const helper = document.createElement('textarea')
-    helper.value = text
-    document.body.appendChild(helper)
-    helper.select()
-    document.execCommand('copy')
-    helper.remove()
-  }
-}
+import { CopyButton } from './CopyButton'
 
 /** Reads "python" out of the `language-python` class that the Markdown parser puts on code. */
 function languageOf(children: ReactNode): string | null {
@@ -28,23 +12,6 @@ function languageOf(children: ReactNode): string | null {
   const className = (children.props as { className?: string }).className ?? ''
   const match = /language-([\w+#-]+)/.exec(className)
   return match ? match[1] : null
-}
-
-function CopyButton({ getText }: { getText(): string }) {
-  const [copied, setCopied] = useState(false)
-
-  async function onClick(): Promise<void> {
-    await copyText(getText())
-    setCopied(true)
-    setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS)
-  }
-
-  return (
-    <button type="button" className="code-block__copy" onClick={() => void onClick()}>
-      {copied ? <CheckIcon size={14} weight="bold" /> : <CopyIcon size={14} />}
-      {copied ? 'Copied' : 'Copy'}
-    </button>
-  )
 }
 
 function CodeBlock({ children, node: _node, ...rest }: ComponentPropsWithoutRef<'pre'> & { node?: unknown }) {
