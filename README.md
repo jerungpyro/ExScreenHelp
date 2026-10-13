@@ -1,14 +1,32 @@
 # ExScreenHelp
 
-A floating orb for Windows 11. Click it, choose **Select area**, drag a box around anything on your screen, and the AI of your choice (DeepSeek, OpenAI, Claude or Gemini) answers in a panel that grows out of the orb. You can ask follow-ups, and every conversation (with its screenshot) is kept in History.
+**Ask an AI about anything on your screen.** ExScreenHelp is a small floating orb for Windows 11. Click it (or press **Ctrl+Alt+Space**), drag a box around whatever you're looking at, and the AI of your choice explains it in a panel that grows out of the orb.
 
-It handles general questions (homework, articles, translation, "what is this?") and code (snippets, error messages, stack traces).
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/panel-dark.png">
+    <img src="docs/images/panel-light.png" alt="The ExScreenHelp panel explaining a TypeError selected from a code editor, with the suggested fix in a highlighted code block" width="428">
+  </picture>
+</p>
+
+It works with **DeepSeek, OpenAI, Claude and Gemini**, using your own API key. Use it for code and error messages, homework questions, an article in another language, a chart, a form, or plain "what is this?".
+
+## Features
+
+- **Select any area of the screen.** The screen freezes while you drag, so menus and tooltips stay put.
+- **A keyboard shortcut** that works from any app, so you don't have to reach for the orb.
+- **Follow-up questions**, with more screenshots or pasted images (**Ctrl+V**) along the way.
+- **Answers as they're written**, in Markdown with highlighted code and Copy buttons.
+- **History** of every conversation, with its screenshots, to reopen and continue later.
+- **Preferences** that tell the AI how you like your answers (language, detail, how to explain code).
+- **Light and dark mode**, following Windows.
+- **Private by design:** your keys are encrypted, your history stays on your PC, and requests go straight to the provider you chose.
 
 ## Download
 
 Get the latest version from the [Releases page](https://github.com/jerungpyro/ExScreenHelp/releases/latest). Pick one:
 
-- **`ExScreenHelp-Setup-<version>.exe`**: installer. Installs for your user only (no admin rights needed) and adds Start menu and desktop shortcuts. Remove it later from Windows Settings → Apps.
+- **`ExScreenHelp-Setup-<version>.exe`**: installer. Installs for your user only (no admin rights needed) and adds Start menu and desktop shortcuts. Installing a newer version updates the old one. Remove it from Windows Settings → Apps.
 - **`ExScreenHelp-<version>-win-x64.zip`**: portable. Unzip it anywhere and run `ExScreenHelp.exe`.
 
 Requires Windows 11, 64-bit.
@@ -33,36 +51,75 @@ You can change the model in Settings, as long as it accepts images. Each provide
 
 ## Using it
 
-- **Ask about something on screen:** click the orb, choose **Select area** (or **New selection** at the top of the panel) and drag a box. The screen freezes while you select. Press **Esc** to cancel.
+- **Ask about something on screen:** click the orb, choose **Select area** (or **New selection** at the top of the panel) and drag a box. Press **Esc** or right-click to cancel. Selecting works on your main display; other monitors aren't supported yet.
 - **Keyboard shortcut:** press **Ctrl+Alt+Space** from any app to go straight to selecting an area. With a chat open, it adds a screenshot to your next follow-up instead. Choose a different shortcut, or turn it off, in Settings.
 - **Follow up:** type in the box under the answer. **Enter** sends, **Shift+Enter** adds a new line. To show the AI something else, add a screenshot with the button beside the box, or paste an image (**Ctrl+V**), for example one taken with **Win+Shift+S**. Large pasted images are scaled down to 2000 pixels on their longest side.
 - **Copy an answer:** click **Copy** under it. You get the Markdown, so headings, lists and code blocks keep their formatting when pasted into a document or chat. Each code block also has its own **Copy**.
 - **Pick up where you left off:** clicking the orb reopens the conversation you last had open. Click the orb at the top of the panel (or press **Esc**) to close it again.
-- **History:** reopen any earlier conversation and keep asking.
+- **History:** reopen any earlier conversation and keep asking, or delete it.
 - **Preferences:** in Settings, tell the AI how you like your answers, for example which language to use, how much detail to give, or how to explain code. They're sent with every question, whichever provider you use.
 - **Move the orb:** drag it anywhere. It snaps to the nearest screen edge and fades when you're not using it.
 - **Tray icon:** show or hide the orb, or quit the app.
-- **Settings:** provider, API key, model, API address, Preferences, the keyboard shortcut and **Launch at startup**.
+- **Launch at startup:** turn it on in Settings to start ExScreenHelp when you sign in to Windows.
 
 ## Privacy
 
 - Only the area you select, or an image you paste, is saved or sent. The app briefly screenshots the whole screen to freeze it while you select, but keeps that image in memory only.
-- The selected area, your questions and your Preferences are sent to the provider you chose (or to the API address set in Settings), and nowhere else.
-- Your API keys are encrypted with Windows' built-in protection (DPAPI) and stored on your PC.
+- The selected area, your questions and your Preferences are sent to the provider you chose (or to the API address set in Settings), and nowhere else. There is no analytics or telemetry.
+- Your API keys are encrypted with Windows' built-in protection (DPAPI), so only your Windows account can read them.
 - Conversations and their screenshots are stored on your PC in `%APPDATA%\ExScreenHelp\`. Uninstalling keeps them. To erase them, delete that folder.
 
-## Build from source
+## How it works
 
-Needs [Node.js](https://nodejs.org/) 22.12 or newer.
+ExScreenHelp is an [Electron](https://www.electronjs.org/) app written in TypeScript, with React for the windows and [electron-vite](https://electron-vite.org/) to build it. It lives in the system tray and has no main window. What you see is three separate windows, all transparent and always on top.
 
-```powershell
-npm install
-npm run dev        # development, with live reload
-npm run package    # portable build: dist\win-unpacked\ExScreenHelp.exe
-npm run release    # public downloads: installer and zip in release\
+| Window | What it does |
+| --- | --- |
+| **Bubble** | Holds the orb. It lets clicks pass through everywhere except the orb itself, snaps to the nearest screen edge, and stops animating when idle so it costs almost nothing while you work. |
+| **Stage** | Draws the menu and the panel. It is never hidden: when closed it draws nothing and lets clicks through. That way it can paint an orb exactly on top of the bubble's before taking over, so the orb seems to grow into the panel without a flicker. |
+| **Overlay** | Created for each selection. It covers the screen with a still image of it, and you drag your box on that. |
+
+### From a selection to an answer
+
+```mermaid
+sequenceDiagram
+    actor You
+    participant Stage as Bubble and Stage
+    participant Main as Main process
+    participant Overlay
+    participant AI as AI provider
+    You->>Stage: Select area (or Ctrl+Alt+Space)
+    Stage->>Main: select an area
+    Main->>Main: hide its own windows, capture the screen
+    Main->>Overlay: show the frozen screenshot
+    You->>Overlay: drag a box
+    Overlay->>Main: the selected rectangle
+    Main->>Main: crop it, save it in History
+    Main->>AI: the conversation and its screenshots
+    AI-->>Main: the answer, piece by piece
+    Main-->>Stage: show it as it arrives
 ```
 
-Other commands: `npm test` (unit tests), `npm run typecheck`, `npm run make-icon` (redraws `resources/icon.png`).
+1. ExScreenHelp hides its own windows, so they never appear in the screenshot, then captures the whole display at its full resolution.
+2. The overlay shows that capture as a still image, and you drag a box on it.
+3. Your box is measured in the display's scaled units, so it's converted to real pixels (this keeps the crop exact at 125% or 150% scaling). The crop is cut from the original, lossless capture and saved as a PNG in a new conversation folder. The full-screen capture is thrown away.
+4. The request is built from a short built-in instruction, your Preferences and the whole conversation, including every screenshot, since AI providers keep no memory between requests.
+5. The answer streams back and appears as it's written. When it's done, the conversation is saved and titled after the first line of the answer.
+
+### Talking to the providers
+
+- DeepSeek, OpenAI and Gemini are reached through their OpenAI-compatible APIs with the [`openai`](https://www.npmjs.com/package/openai) package. Claude uses Anthropic's own API through [`@anthropic-ai/sdk`](https://www.npmjs.com/package/@anthropic-ai/sdk). The provider list, with default models and addresses, is in [`src/shared/providers.ts`](src/shared/providers.ts).
+- Requests go through Chromium's network stack rather than Node's, so they use Windows' proxy settings and trusted certificates. That's what makes the app work on company networks and with antivirus HTTPS scanning.
+- An answer is given up on only when nothing arrives for two minutes, because reasoning models can think for a long time before the first word. If a DeepSeek, OpenAI or Gemini model refuses streaming, the app asks for the whole answer at once instead.
+- Errors become plain messages that say what to do: a wrong key or model name points you to Settings, and an out-of-credit account, rate limits, network problems and timeouts each get their own message.
+
+### Keeping things safe
+
+- Only the main process holds API keys or touches the disk. The three windows run sandboxed, with no access to Node, and can only ask the main process for things through a small typed API (`window.api`) defined in the preload script. Every request they send is checked before it's acted on.
+- API keys are encrypted with Electron's `safeStorage`, which uses Windows DPAPI.
+- Saved screenshots reach the panel through a custom `capture://` address that only accepts the app's own conversation and file names, so it can't be used to read other files.
+- The windows can't navigate away or open new windows. Links in answers open in your browser.
+- Pasted images are decoded and re-encoded before they're saved, so only a clean PNG is stored.
 
 ### Where things are stored
 
@@ -73,14 +130,56 @@ Other commands: `npm test` (unit tests), `npm run typecheck`, `npm run make-icon
 - `apikey-openai.bin`, `apikey-claude.bin`, `apikey-gemini.bin`: the other providers' keys, encrypted the same way
 - `history\<id>\`: one folder per conversation, holding `conversation.json` and its screenshots (`capture.png`, `capture-2.png`, …)
 
-To run a second, separate copy (for example a test build next to your everyday one), point it at another data folder: `$env:EXSCREENHELP_USER_DATA = 'C:\some\folder'; npm run dev`.
+## Build from source
 
-### Notes
+Needs Windows and [Node.js](https://nodejs.org/) 22.12 or newer.
 
-- DeepSeek, OpenAI and Gemini are reached through their OpenAI-compatible APIs with the `openai` package. Claude uses Anthropic's own API through `@anthropic-ai/sdk`. The provider list, with default models and addresses, is in [`src/shared/providers.ts`](src/shared/providers.ts).
-- If a provider renames its default model, change it in Settings.
+```powershell
+npm install
+npm run dev        # run with live reload
+npm test           # unit tests (Vitest)
+npm run typecheck  # type-check the main process and the windows
+npm run package    # portable build: dist\win-unpacked\ExScreenHelp.exe
+npm run release    # public downloads: installer and zip in release\ (not code-signed)
+```
+
+`npm run make-icon` redraws `resources/icon.png`.
+
+### Project layout
+
+```
+src/
+  main/        The main process, organised by feature
+    capture/     screen capture, cropping, pasted images
+    chat/        provider clients, request building, error messages, titles
+    layout/      where the bubble, menu and panel go on screen
+    storage/     settings, encrypted keys, history, the capture:// protocol
+    windows/     the bubble, stage and overlay windows
+    controller.ts  moves between idle, menu, panel and selecting
+    ipc.ts         every request the windows can make, with its checks
+  preload/     exposes window.api to the windows
+  renderer/    one page per window: bubble, stage (menu and panel), overlay
+  shared/      types, constants, the provider list and the window.api contract
+```
+
+Logic that doesn't need Electron (requests, errors, history, settings, layout) has unit tests next to it. The windows, the controller and IPC are checked by running the app.
+
+### Running a second copy
+
+To run a test build next to your everyday copy, point it at another data folder. It then keeps its own settings, history and keys:
+
+```powershell
+$env:EXSCREENHELP_USER_DATA = 'C:\some\folder'; npm run dev
+```
+
+The keyboard shortcut is shared by the whole system, so whichever copy starts second shows it as taken in Settings.
+
+### Troubleshooting
+
 - If `npm run dev` fails with `Cannot read properties of undefined (reading 'registerSchemesAsPrivileged')`, the environment variable `ELECTRON_RUN_AS_NODE` is set. Some tools, such as VS Code extensions, set it. Clear it first: `Remove-Item Env:ELECTRON_RUN_AS_NODE`.
-- Design: [`docs/superpowers/specs/2026-09-28-exscreenhelp-design.md`](docs/superpowers/specs/2026-09-28-exscreenhelp-design.md). Plan: [`docs/superpowers/plans/2026-09-28-exscreenhelp.md`](docs/superpowers/plans/2026-09-28-exscreenhelp.md).
+- If a provider renames its default model, change it in Settings.
+
+The original design and plan are in [`docs/superpowers/`](docs/superpowers/).
 
 ## License
 
