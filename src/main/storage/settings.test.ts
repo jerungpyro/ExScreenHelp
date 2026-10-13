@@ -157,6 +157,16 @@ describe('settings store', () => {
     expect(store.apiKeyHint('gemini')).toBe('•••• abcd')
   })
 
+  it('saves settings and keys without leaving temporary files behind', () => {
+    const store = createSettingsStore(dir, fakeCrypto)
+    store.update({ preferences: 'Short answers.' })
+    store.setApiKey('claude', 'sk-ant-2222')
+
+    expect(existsSync(join(dir, 'settings.json.tmp'))).toBe(false)
+    expect(existsSync(join(dir, 'apikey-claude.bin.tmp'))).toBe(false)
+    expect(createSettingsStore(dir, fakeCrypto).getApiKey('claude')).toBe('sk-ant-2222')
+  })
+
   it('removes the key when set to an empty string', () => {
     const store = createSettingsStore(dir, fakeCrypto)
     store.setApiKey('deepseek', 'sk-test-1234abcd')

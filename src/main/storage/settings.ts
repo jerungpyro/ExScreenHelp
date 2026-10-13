@@ -1,8 +1,9 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { DEFAULT_PROVIDER, isProviderId, PROVIDERS, type ProviderId } from '../../shared/providers'
 import { DEFAULT_SHORTCUT, isShortcutSetting } from '../../shared/shortcuts'
 import type { BubbleAnchor, Point, Settings, Size } from '../../shared/types'
+import { writeFileSafely } from './writeFileSafely'
 
 const SETTINGS_FILE = 'settings.json'
 
@@ -141,7 +142,8 @@ export function createSettingsStore(dir: string, crypto: SecretCrypto): Settings
   function update(patch: Partial<Settings>): Settings {
     current = { ...current, ...patch }
     mkdirSync(dir, { recursive: true })
-    writeFileSync(settingsPath, JSON.stringify(current, null, 2), 'utf8')
+    // Saved on every bubble drag and Settings change, so a crash mid-write must not lose them.
+    writeFileSafely(settingsPath, JSON.stringify(current, null, 2))
     return get()
   }
 
@@ -173,7 +175,7 @@ export function createSettingsStore(dir: string, crypto: SecretCrypto): Settings
       throw new Error("Windows secure storage isn't available, so the API key can't be saved safely.")
     }
     mkdirSync(dir, { recursive: true })
-    writeFileSync(apiKeyPath, crypto.encrypt(trimmed))
+    writeFileSafely(apiKeyPath, crypto.encrypt(trimmed))
   }
 
   function apiKeyHint(provider: ProviderId): string | null {
