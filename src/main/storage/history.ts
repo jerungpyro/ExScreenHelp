@@ -1,9 +1,8 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { NEW_CAPTURE_TITLE } from '../../shared/constants'
+import { FIRST_CAPTURE_NAME, NEW_CAPTURE_TITLE } from '../../shared/constants'
 import type { Conversation, ConversationSummary } from '../../shared/types'
 
-const CAPTURE_FILE = 'capture.png'
 const CONVERSATION_FILE = 'conversation.json'
 
 /** Ids look like 20260928-140322-k3f9. Anything else is rejected, so an id can never point outside the history folder. */
@@ -20,11 +19,15 @@ export function isValidCaptureName(name: string): boolean {
 }
 
 export interface HistoryStore {
+  /** Saves a new selection as a conversation with no messages yet: nothing has been asked about it. */
   create(png: Buffer): Conversation
   save(conversation: Conversation): void
   load(id: string): Conversation | null
+  /** Conversations that have been asked about, most recently updated first. */
   list(): ConversationSummary[]
   remove(id: string): void
+  /** Deletes selections that were never asked about, such as one left open when the app quit. */
+  removeUnsent(): void
   /** Path of one of the conversation's screenshots (the first one by default). */
   capturePath(id: string, captureName?: string): string
   /** Saves another screenshot in the conversation's folder and returns its file name. */
@@ -105,14 +108,15 @@ export function createHistoryStore(rootDir: string, options: HistoryOptions = {}
     const createdAt = date.toISOString()
     const folder = join(rootDir, id)
     mkdirSync(folder, { recursive: true })
-    writeFileSync(join(folder, CAPTURE_FILE), png)
+    writeFileSync(join(folder, FIRST_CAPTURE_NAME), png)
 
+    // The first message is added when the user asks about the selection.
     const conversation: Conversation = {
       id,
       createdAt,
       updatedAt: createdAt,
       title: NEW_CAPTURE_TITLE,
-      messages: [{ role: 'user', text: '', image: CAPTURE_FILE, createdAt }]
+      messages: []
     }
     save(conversation)
     return conversation
@@ -134,17 +138,28 @@ export function createHistoryStore(rootDir: string, options: HistoryOptions = {}
     }
   }
 
-  function list(): ConversationSummary[] {
+  /** Every readable conversation in the history folder, including ones not asked about yet. */
+  function loadAll(): Conversation[] {
     if (!existsSync(rootDir)) {
       return []
     }
-    const summaries: ConversationSummary[] = []
+    const conversations: Conversation[] = []
     for (const entry of readdirSync(rootDir, { withFileTypes: true })) {
       if (!entry.isDirectory() || !isValidId(entry.name)) {
         continue
       }
       const conversation = load(entry.name)
-      if (conversation === null) {
+      if (conversation !== null) {
+        conversations.push(conversation)
+      }
+    }
+    return conversations
+  }
+
+  function list(): ConversationSummary[] {
+    const summaries: ConversationSummary[] = []
+    for (const conversation of loadAll()) {
+      if (conversation.messages.length === 0) {
         continue
       }
       summaries.push({
@@ -166,7 +181,15 @@ export function createHistoryStore(rootDir: string, options: HistoryOptions = {}
     rmSync(join(rootDir, id), { recursive: true, force: true })
   }
 
-  function capturePath(id: string, captureName: string = CAPTURE_FILE): string {
+  function removeUnsent(): void {
+    for (const conversation of loadAll()) {
+      if (conversation.messages.length === 0) {
+        remove(conversation.id)
+      }
+    }
+  }
+
+  function capturePath(id: string, captureName: string = FIRST_CAPTURE_NAME): string {
     if (!isValidCaptureName(captureName)) {
       throw new Error(`Invalid capture name: ${captureName}`)
     }
@@ -199,11 +222,11 @@ export function createHistoryStore(rootDir: string, options: HistoryOptions = {}
   }
 
   function removeCapture(id: string, captureName: string): void {
-    if (!isValidId(id) || !isValidCaptureName(captureName) || captureName === CAPTURE_FILE) {
+    if (!isValidId(id) || !isValidCaptureName(captureName) || captureName === FIRST_CAPTURE_NAME) {
       return
     }
     rmSync(join(rootDir, id, captureName), { force: true })
   }
 
-  return { create, save, load, list, remove, capturePath, addCapture, hasCapture, removeCapture }
+  return { create, save, load, list, remove, removeUnsent, capturePath, addCapture, hasCapture, removeCapture }
 }

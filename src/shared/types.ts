@@ -44,7 +44,7 @@ export interface StageLayout {
 export interface UserMessage {
   role: 'user'
   text: string
-  /** File name of the capture inside the conversation folder. Only the first message has one. */
+  /** File name of a screenshot in the conversation folder, sent with this message. */
   image?: string
   createdAt: string
 }

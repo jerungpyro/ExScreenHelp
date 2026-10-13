@@ -1,8 +1,9 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect } from 'react'
+import { FIRST_CAPTURE_NAME } from '../../../shared/constants'
 
 /** URL of one of a conversation's screenshots, served by the main process's capture:// protocol. */
-export function captureUrl(conversationId: string, captureName = 'capture.png'): string {
+export function captureUrl(conversationId: string, captureName = FIRST_CAPTURE_NAME): string {
   return `capture://${conversationId}/${captureName}`
 }
 

@@ -35,6 +35,8 @@ async function start(): Promise<void> {
     decrypt: (data) => safeStorage.decryptString(data)
   })
   const history = createHistoryStore(join(userData, 'history'))
+  // A selection still waiting for its question when the app last closed can't be reopened, so drop it.
+  history.removeUnsent()
   handleCaptureProtocol(history)
 
   const workArea = () => screen.getPrimaryDisplay().workArea

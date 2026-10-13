@@ -1,6 +1,6 @@
 # ExScreenHelp
 
-**Ask an AI about anything on your screen.** ExScreenHelp is a small floating orb for Windows 11. Click it (or press **Ctrl+Alt+Space**), drag a box around whatever you're looking at, and the AI of your choice explains it in a panel that grows out of the orb.
+**Ask an AI about anything on your screen.** ExScreenHelp is a small floating orb for Windows 11. Click it (or press **Ctrl+Alt+Space**), drag a box around whatever you're looking at, and ask about it in a panel that grows out of the orb. Type a question, or just press Enter, and the AI of your choice answers.
 
 <p align="center">
   <picture>
@@ -13,7 +13,7 @@ It works with **DeepSeek, OpenAI, Claude and Gemini**, using your own API key. U
 
 ## Features
 
-- **Select any area of the screen.** The screen freezes while you drag, so menus and tooltips stay put.
+- **Select any area of the screen.** The screen freezes while you drag, so menus and tooltips stay put. Then ask about it in your own words, or press Enter to have it explained.
 - **A keyboard shortcut** that works from any app, so you don't have to reach for the orb.
 - **Follow-up questions**, with more screenshots or pasted images (**Ctrl+V**) along the way.
 - **Answers as they're written**, in Markdown with highlighted code and Copy buttons.
@@ -51,7 +51,7 @@ You can change the model in Settings, as long as it accepts images. Each provide
 
 ## Using it
 
-- **Ask about something on screen:** click the orb, choose **Select area** (or **New selection** at the top of the panel) and drag a box. Press **Esc** or right-click to cancel. Selecting works on your main display; other monitors aren't supported yet.
+- **Ask about something on screen:** click the orb, choose **Select area** (or **New selection** at the top of the panel) and drag a box. Press **Esc** or right-click to cancel. The panel opens on your selection: type a question or instructions (for example "translate this into Malay"), or just press **Enter** to have it explained. Selecting works on your main display; other monitors aren't supported yet.
 - **Keyboard shortcut:** press **Ctrl+Alt+Space** from any app to go straight to selecting an area. With a chat open, it adds a screenshot to your next follow-up instead. Choose a different shortcut, or turn it off, in Settings.
 - **Follow up:** type in the box under the answer. **Enter** sends, **Shift+Enter** adds a new line. To show the AI something else, add a screenshot with the button beside the box, or paste an image (**Ctrl+V**), for example one taken with **Win+Shift+S**. Large pasted images are scaled down to 2000 pixels on their longest side.
 - **Copy an answer:** click **Copy** under it. You get the Markdown, so headings, lists and code blocks keep their formatting when pasted into a document or chat. Each code block also has its own **Copy**.
@@ -94,7 +94,10 @@ sequenceDiagram
     Main->>Overlay: show the frozen screenshot
     You->>Overlay: drag a box
     Overlay->>Main: the selected rectangle
-    Main->>Main: crop it, save it in History
+    Main->>Main: crop it and save it
+    Main->>Stage: open the panel on the selection
+    You->>Stage: type a question (or just press Enter)
+    Stage->>Main: the question
     Main->>AI: the conversation and its screenshots
     AI-->>Main: the answer, piece by piece
     Main-->>Stage: show it as it arrives
@@ -103,8 +106,9 @@ sequenceDiagram
 1. ExScreenHelp hides its own windows, so they never appear in the screenshot, then captures the whole display at its full resolution.
 2. The overlay shows that capture as a still image, and you drag a box on it.
 3. Your box is measured in the display's scaled units, so it's converted to real pixels (this keeps the crop exact at 125% or 150% scaling). The crop is cut from the original, lossless capture and saved as a PNG in a new conversation folder. The full-screen capture is thrown away.
-4. The request is built from a short built-in instruction, your Preferences and the whole conversation, including every screenshot, since AI providers keep no memory between requests.
-5. The answer streams back and appears as it's written. When it's done, the conversation is saved and titled after the first line of the answer.
+4. The panel opens on the selection and waits for your question. A selection you never ask about isn't kept: it's removed when you make another one, or the next time the app starts.
+5. The request is built from a short built-in instruction, your Preferences and the whole conversation, including every screenshot, since AI providers keep no memory between requests.
+6. The answer streams back and appears as it's written. When it's done, the conversation is saved and titled after the first line of the answer.
 
 ### Talking to the providers
 

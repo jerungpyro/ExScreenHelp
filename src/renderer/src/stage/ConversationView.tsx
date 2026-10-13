@@ -1,5 +1,6 @@
 import { ArrowClockwiseIcon, ArrowUpIcon, SelectionPlusIcon, StopIcon, WarningCircleIcon, XIcon } from '@phosphor-icons/react'
 import {
+  Fragment,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -31,6 +32,13 @@ const SETTINGS_ERRORS: ChatErrorKind[] = ['no-key', 'invalid-key', 'bad-model']
 /** Stay pinned to the bottom while an answer streams, unless the user scrolled up to read. */
 const STICK_TO_BOTTOM_PX = 80
 const MAX_COMPOSER_HEIGHT = 120
+
+function composerPlaceholder(busy: boolean, unsent: boolean, hasCapture: boolean): string {
+  if (busy) return 'Answering…'
+  if (unsent) return 'Ask about this, or press Enter'
+  if (hasCapture) return 'Add a note (optional)'
+  return 'Ask a follow-up'
+}
 
 /**
  * The image on the clipboard, if any. When the clipboard also holds text (Office copies a picture of
@@ -76,6 +84,8 @@ export function ConversationView({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const messages = conversation.messages
+  // A new selection waits here for the user's question before anything is sent.
+  const unsent = messages.length === 0
   const lastMessage = messages[messages.length - 1]
   const waitingForAnswer = !busy && lastMessage?.role === 'user'
   const lastAnswerIncomplete = !busy && lastMessage?.role === 'assistant' && lastMessage.status === 'incomplete'
@@ -85,7 +95,8 @@ export function ConversationView({
   const pendingUrl = composer.capture
     ? `${captureUrl(conversation.id, composer.capture.name)}?v=${composer.capture.addedAt}`
     : null
-  const canSend = !busy && (composer.text.trim() !== '' || composer.capture !== null)
+  // The first question may be empty: it then asks about the selection as it is.
+  const canSend = !busy && (unsent || composer.text.trim() !== '' || composer.capture !== null)
 
   // Put the cursor in the follow-up box when a conversation opens or a screenshot was just attached.
   useEffect(() => {
@@ -147,6 +158,10 @@ export function ConversationView({
 
   /** Pasting an image attaches it like a screenshot. Pasting text works as usual. */
   function onComposerPaste(event: ClipboardEvent<HTMLTextAreaElement>): void {
+    // A new selection already is the conversation's screenshot.
+    if (unsent) {
+      return
+    }
     const image = imageOnClipboard(event.clipboardData)
     if (image === null) {
       return
@@ -171,6 +186,7 @@ export function ConversationView({
   return (
     <div className="conversation">
       <div className="conversation__scroll" ref={scrollRef} onScroll={onScroll}>
+        {unsent && <CaptureThumbnail url={captureUrl(conversation.id)} onEnlarge={setEnlargedUrl} onLoad={keepPinnedToBottom} />}
         {messages.map((message, index) => {
           if (message.role === 'assistant') {
             return (
@@ -181,15 +197,21 @@ export function ConversationView({
               </div>
             )
           }
-          // The first message is the original capture, shown large at the top.
+          // The first message is the original capture, shown large at the top, then the question asked about it.
           if (index === 0 && message.image) {
             return (
-              <CaptureThumbnail
-                key={index}
-                url={captureUrl(conversation.id, message.image)}
-                onEnlarge={setEnlargedUrl}
-                onLoad={keepPinnedToBottom}
-              />
+              <Fragment key={index}>
+                <CaptureThumbnail
+                  url={captureUrl(conversation.id, message.image)}
+                  onEnlarge={setEnlargedUrl}
+                  onLoad={keepPinnedToBottom}
+                />
+                {message.text !== '' && (
+                  <div className="user-message">
+                    <p className="user-message__text">{message.text}</p>
+                  </div>
+                )}
+              </Fragment>
             )
           }
           const imageUrl = message.image ? captureUrl(conversation.id, message.image) : null
@@ -268,22 +290,24 @@ export function ConversationView({
           </p>
         )}
         <div className="composer__row">
-          <button
-            type="button"
-            className="icon-button composer__tool"
-            title={composer.capture ? 'Replace the screenshot' : 'Add a screenshot'}
-            aria-label={composer.capture ? 'Replace the screenshot' : 'Add a screenshot'}
-            disabled={busy}
-            onClick={onAddScreenshot}
-          >
-            <SelectionPlusIcon size={18} />
-          </button>
+          {!unsent && (
+            <button
+              type="button"
+              className="icon-button composer__tool"
+              title={composer.capture ? 'Replace the screenshot' : 'Add a screenshot'}
+              aria-label={composer.capture ? 'Replace the screenshot' : 'Add a screenshot'}
+              disabled={busy}
+              onClick={onAddScreenshot}
+            >
+              <SelectionPlusIcon size={18} />
+            </button>
+          )}
           <textarea
             ref={textareaRef}
             className="composer__input"
             rows={1}
             value={composer.text}
-            placeholder={busy ? 'Answering…' : composer.capture ? 'Add a note (optional)' : 'Ask a follow-up'}
+            placeholder={composerPlaceholder(busy, unsent, composer.capture !== null)}
             aria-label="Follow-up question"
             disabled={busy}
             onChange={(event) => {

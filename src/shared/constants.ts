@@ -40,5 +40,8 @@ export const MAX_PREFERENCES_LENGTH = 10_000
 /** More than any screenshot needs. A bigger pasted image is refused rather than decoded. */
 export const MAX_PASTED_BYTES = 30 * 1024 * 1024
 
+/** The file name of a conversation's first screenshot: the selection it started from. */
+export const FIRST_CAPTURE_NAME = 'capture.png'
+
 export const TITLE_MAX_LENGTH = 60
 export const NEW_CAPTURE_TITLE = 'New capture'

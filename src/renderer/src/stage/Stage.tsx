@@ -76,6 +76,11 @@ export function Stage() {
       if (current.conversationId !== null && current.capture !== null) {
         api.chat.discardCapture(current.conversationId, current.capture.name)
       }
+      // A selection that was never asked about is dropped once another conversation takes its place.
+      const previous = chatRef.current
+      if (previous !== null && previous.conversation.id !== conversationId && previous.conversation.messages.length === 0) {
+        void api.history.remove(previous.conversation.id)
+      }
       next = { conversationId, text: '', capture: null }
     }
 
@@ -135,7 +140,8 @@ export function Stage() {
   }, [])
 
   // The keyboard shortcut while we're open: add a screenshot to the chat on screen, or start a new chat.
-  // A chat that is still being answered takes one too; it waits in the follow-up box.
+  // A chat that is still being answered takes one too; it waits in the follow-up box. A selection not
+  // yet asked about is replaced by a new one instead, since it already is that chat's screenshot.
   useEffect(() => {
     return api.stage.onShortcut(() => {
       const currentMode = modeRef.current
@@ -143,7 +149,8 @@ export function Stage() {
         return
       }
       const currentChat = chatRef.current
-      if (currentMode === 'panel' && viewRef.current === 'conversation' && currentChat !== null) {
+      const chatOnScreen = currentMode === 'panel' && viewRef.current === 'conversation' && currentChat !== null
+      if (chatOnScreen && currentChat.conversation.messages.length > 0) {
         void addScreenshot(currentChat.conversation.id)
       } else {
         void selectArea()

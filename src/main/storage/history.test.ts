@@ -2,7 +2,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { createHistoryStore, isValidCaptureName, isValidId } from './history'
+import type { Conversation } from '../../shared/types'
+import { createHistoryStore, isValidCaptureName, isValidId, type HistoryStore } from './history'
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47])
 
@@ -20,16 +21,22 @@ function storeAt(time: string, suffix = 'ab12') {
   return createHistoryStore(root, { now: () => new Date(time), randomSuffix: () => suffix })
 }
 
+/** A new selection that has been asked about, as the chat session saves it after the first question. */
+function createAsked(store: HistoryStore): Conversation {
+  const conversation = store.create(PNG)
+  conversation.messages.push({ role: 'user', text: '', image: 'capture.png', createdAt: conversation.createdAt })
+  store.save(conversation)
+  return conversation
+}
+
 describe('history store', () => {
-  it('creates a folder with the capture and a conversation file', () => {
+  it('creates a folder with the capture and a conversation file, with nothing asked yet', () => {
     const store = storeAt('2026-09-28T14:03:22')
     const conversation = store.create(PNG)
 
     expect(conversation.id).toBe('20260928-140322-ab12')
     expect(conversation.title).toBe('New capture')
-    expect(conversation.messages).toEqual([
-      { role: 'user', text: '', image: 'capture.png', createdAt: conversation.createdAt }
-    ])
+    expect(conversation.messages).toEqual([])
     expect(readFileSync(join(root, conversation.id, 'capture.png'))).toEqual(PNG)
     expect(existsSync(join(root, conversation.id, 'conversation.json'))).toBe(true)
   })
@@ -44,8 +51,8 @@ describe('history store', () => {
   })
 
   it('lists the most recently updated conversation first', () => {
-    const older = storeAt('2026-09-28T10:00:00', 'aaaa').create(PNG)
-    const newer = storeAt('2026-09-28T11:00:00', 'bbbb').create(PNG)
+    const older = createAsked(storeAt('2026-09-28T10:00:00', 'aaaa'))
+    const newer = createAsked(storeAt('2026-09-28T11:00:00', 'bbbb'))
     const store = storeAt('2026-09-28T12:00:00')
 
     expect(store.list().map((c) => c.id)).toEqual([newer.id, older.id])
@@ -58,12 +65,30 @@ describe('history store', () => {
 
   it('skips folders with a missing or damaged conversation file', () => {
     const store = storeAt('2026-09-28T14:03:22')
-    const good = store.create(PNG)
+    const good = createAsked(store)
     mkdirSync(join(root, '20260101-000000-dead'))
     mkdirSync(join(root, '20260101-000000-bad1'))
     writeFileSync(join(root, '20260101-000000-bad1', 'conversation.json'), '{ not json')
 
     expect(store.list().map((c) => c.id)).toEqual([good.id])
+  })
+
+  it('leaves selections that were never asked about out of the list', () => {
+    const asked = createAsked(storeAt('2026-09-28T10:00:00', 'aaaa'))
+    storeAt('2026-09-28T11:00:00', 'bbbb').create(PNG)
+
+    expect(storeAt('2026-09-28T12:00:00').list().map((c) => c.id)).toEqual([asked.id])
+  })
+
+  it('removes selections that were never asked about, and keeps the rest', () => {
+    const asked = createAsked(storeAt('2026-09-28T10:00:00', 'aaaa'))
+    const unsent = storeAt('2026-09-28T11:00:00', 'bbbb').create(PNG)
+    const store = storeAt('2026-09-28T12:00:00')
+
+    store.removeUnsent()
+
+    expect(existsSync(join(root, unsent.id))).toBe(false)
+    expect(store.load(asked.id)).not.toBeNull()
   })
 
   it('removes a conversation folder', () => {

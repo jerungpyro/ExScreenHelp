@@ -167,7 +167,8 @@ export function createController({ bubble, stage, settings, history, chatSession
         return
       }
 
-      const { conversation } = chatSession.start(png)
+      // The panel opens on the selection and waits for the user's question.
+      const conversation = chatSession.start(png)
       await openStage('conversation', { conversationId: conversation.id })
     } finally {
       transitioning = false

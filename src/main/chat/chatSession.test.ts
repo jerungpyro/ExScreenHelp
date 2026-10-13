@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { APIConnectionError, APIError, APIUserAbortError } from 'openai'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import type { ChatChunk, ChatState } from '../../shared/types'
+import type { ChatChunk, ChatState, Conversation } from '../../shared/types'
 import { createHistoryStore, type HistoryStore } from '../storage/history'
 import type { ChatClient, ChatRequest } from './chatClient'
 import { createChatSession, type ChatEvent, type ChatSession } from './chatSession'
@@ -52,6 +52,13 @@ async function untilFirstChunk(): Promise<void> {
   }
 }
 
+/** Selects an area, then asks about it (pressing Enter on an empty box asks about it as it is). */
+function askAboutCapture(question = ''): { conversation: Conversation; finished: Promise<void> } {
+  const conversation = session.start(PNG)
+  const finished = session.followUp(conversation.id, question)
+  return { conversation, finished }
+}
+
 beforeEach(() => {
   root = mkdtempSync(join(tmpdir(), 'exscreen-session-'))
   history = createHistoryStore(root)
@@ -72,13 +79,43 @@ afterEach(() => {
 })
 
 describe('chat session', () => {
+  it('saves a new selection without asking anything until the first question', () => {
+    const conversation = session.start(PNG)
+
+    expect(sentRequests).toHaveLength(0)
+    expect(conversation.messages).toEqual([])
+    expect(history.load(conversation.id)?.messages).toEqual([])
+    expect(session.getState(conversation.id)).toMatchObject({ busy: false, error: null })
+  })
+
+  it('sends the selection with the first question', async () => {
+    script = async function* () {
+      yield 'Terjemahan'
+    }
+    const { conversation, finished } = askAboutCapture('  Translate this into Malay.  ')
+    await finished
+
+    expect(sentRequests[0].turns[0]).toEqual({
+      role: 'user',
+      text: 'Here is the selected area.\n\nTranslate this into Malay.',
+      imagePngBase64: PNG.toString('base64')
+    })
+    expect(lastState().conversation.messages[0]).toEqual({
+      role: 'user',
+      text: 'Translate this into Malay.',
+      image: 'capture.png',
+      createdAt: expect.any(String)
+    })
+    expect(history.load(conversation.id)?.messages).toHaveLength(2)
+  })
+
   it('answers a new capture, streams chunks, saves the answer and sets a title', async () => {
     script = async function* () {
       yield 'Hello'
       yield ' world'
     }
 
-    const { conversation, finished } = session.start(PNG)
+    const { conversation, finished } = askAboutCapture()
     await finished
 
     expect(chunks().map((c) => c.text)).toEqual(['Hello', 'Hello world'])
@@ -96,7 +133,7 @@ describe('chat session', () => {
       yield 'ok'
     }
     preferences = 'Answer in Malay.'
-    const { conversation, finished } = session.start(PNG)
+    const { conversation, finished } = askAboutCapture()
     await finished
     expect(sentRequests[0].system).toContain('Answer in Malay.')
 
@@ -111,7 +148,7 @@ describe('chat session', () => {
     script = async function* () {
       yield 'ok'
     }
-    await session.start(PNG).finished
+    await askAboutCapture().finished
 
     expect(sentRequests[0].system).toContain('on-screen assistant')
     expect(sentRequests[0].turns[0].imagePngBase64).toBe(PNG.toString('base64'))
@@ -121,7 +158,7 @@ describe('chat session', () => {
     script = async function* () {
       yield 'done'
     }
-    await session.start(PNG).finished
+    await askAboutCapture().finished
 
     expect(states()[0]).toMatchObject({ busy: true, streamingText: '', error: null })
   })
@@ -133,7 +170,7 @@ describe('chat session', () => {
       throw new APIUserAbortError()
     }
 
-    const { conversation, finished } = session.start(PNG)
+    const { conversation, finished } = askAboutCapture()
     await untilFirstChunk()
     session.stop(conversation.id)
     await finished
@@ -149,7 +186,7 @@ describe('chat session', () => {
       await waitForAbort(signal)
       throw new APIUserAbortError()
     }
-    const { conversation, finished } = session.start(PNG)
+    const { conversation, finished } = askAboutCapture()
     await untilFirstChunk()
     session.stop(conversation.id)
     await finished
@@ -169,7 +206,7 @@ describe('chat session', () => {
       throw APIError.generate(401, { error: { message: 'Authentication Fails' } }, undefined, new Headers())
     }
 
-    const { conversation, finished } = session.start(PNG)
+    const { conversation, finished } = askAboutCapture()
     await finished
 
     expect(lastState().error?.kind).toBe('invalid-key')
@@ -183,7 +220,7 @@ describe('chat session', () => {
       throw new APIConnectionError({ message: 'Connection error.' })
     }
 
-    await session.start(PNG).finished
+    await askAboutCapture().finished
 
     expect(lastState().error?.kind).toBe('network')
     expect(lastState().conversation.messages[1]).toMatchObject({ text: 'Half', status: 'incomplete' })
@@ -193,7 +230,7 @@ describe('chat session', () => {
     script = async function* () {
       yield 'First answer'
     }
-    const { conversation, finished } = session.start(PNG)
+    const { conversation, finished } = askAboutCapture()
     await finished
 
     script = async function* () {
@@ -214,7 +251,7 @@ describe('chat session', () => {
     script = async function* () {
       yield 'First answer'
     }
-    const { conversation, finished } = session.start(PNG)
+    const { conversation, finished } = askAboutCapture()
     await finished
     const secondPng = Buffer.from('second screenshot')
     const captureName = history.addCapture(conversation.id, secondPng)
@@ -235,7 +272,7 @@ describe('chat session', () => {
     script = async function* () {
       yield 'Answer'
     }
-    const { conversation, finished } = session.start(PNG)
+    const { conversation, finished } = askAboutCapture()
     await finished
 
     await session.followUp(conversation.id, '', 'capture-9.png')
@@ -252,7 +289,7 @@ describe('chat session', () => {
       await waitForAbort(signal)
       throw new APIUserAbortError()
     }
-    const { conversation, finished } = session.start(PNG)
+    const { conversation, finished } = askAboutCapture()
     await untilFirstChunk()
 
     expect(session.isBusy(conversation.id)).toBe(true)
@@ -269,7 +306,7 @@ describe('chat session', () => {
       await waitForAbort(signal)
       throw new APIUserAbortError()
     }
-    const { conversation, finished } = session.start(PNG)
+    const { conversation, finished } = askAboutCapture()
     await untilFirstChunk()
 
     session.forget(conversation.id)
@@ -282,7 +319,7 @@ describe('chat session', () => {
 
   it('reports a missing API key without calling the provider', async () => {
     hasKey = false
-    await session.start(PNG).finished
+    await askAboutCapture().finished
 
     expect(sentRequests).toHaveLength(0)
     expect(lastState()).toMatchObject({ busy: false, error: { kind: 'no-key' } })
@@ -293,7 +330,7 @@ describe('chat session', () => {
     script = async function* () {
       throw APIError.generate(401, { error: { message: 'Authentication Fails' } }, undefined, new Headers())
     }
-    await session.start(PNG).finished
+    await askAboutCapture().finished
 
     expect(lastState().error?.message).toBe('DeepSeek rejected the API key. Check it in Settings.')
   })
@@ -302,7 +339,7 @@ describe('chat session', () => {
     script = async function* () {
       yield 'Saved answer'
     }
-    const { conversation, finished } = session.start(PNG)
+    const { conversation, finished } = askAboutCapture()
     await finished
 
     const freshSession = createChatSession({

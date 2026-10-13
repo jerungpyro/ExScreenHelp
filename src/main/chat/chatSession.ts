@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { NEW_CAPTURE_TITLE } from '../../shared/constants'
+import { FIRST_CAPTURE_NAME, NEW_CAPTURE_TITLE } from '../../shared/constants'
 import type { ChatChunk, ChatErrorInfo, ChatState, Conversation } from '../../shared/types'
 import type { HistoryStore } from '../storage/history'
 import { mapError, noKeyError } from './apiErrors'
@@ -21,12 +21,13 @@ export interface ChatSessionDeps {
 }
 
 export interface ChatSession {
-  /** Creates a conversation from a capture and starts the first answer. */
-  start(png: Buffer): { conversation: Conversation; finished: Promise<void> }
+  /** Saves a new selection as a conversation. Nothing is asked until the first `followUp`. */
+  start(png: Buffer): Conversation
   /**
-   * Adds a follow-up and answers it. `captureName` attaches a screenshot added with
-   * history.addCapture; text may then be empty. Resolves when the answer has finished
-   * (or immediately if the follow-up was refused).
+   * Adds a question and answers it. The first question in a conversation is about its selection,
+   * and its text may be empty (ask about the selection as it is). Later ones need text, or a
+   * screenshot added with history.addCapture as `captureName`. Resolves when the answer has
+   * finished (or immediately if the question was refused).
    */
   followUp(conversationId: string, text: string, captureName?: string): Promise<void>
   retry(conversationId: string): Promise<void>
@@ -139,11 +140,10 @@ export function createChatSession(deps: ChatSessionDeps): ChatSession {
     emitState(conversation)
   }
 
-  function start(png: Buffer): { conversation: Conversation; finished: Promise<void> } {
+  function start(png: Buffer): Conversation {
     const conversation = deps.history.create(png)
     conversations.set(conversation.id, conversation)
-    const finished = answer(conversation)
-    return { conversation: structuredClone(conversation), finished }
+    return structuredClone(conversation)
   }
 
   async function followUp(conversationId: string, text: string, captureName?: string): Promise<void> {
@@ -152,14 +152,17 @@ export function createChatSession(deps: ChatSessionDeps): ChatSession {
     if (conversation === null || running.has(conversationId)) {
       return
     }
+    const createdAt = now().toISOString()
     // Only attach screenshots that really were saved in this conversation's folder.
     const hasScreenshot = captureName !== undefined && deps.history.hasCapture(conversationId, captureName)
-    if (trimmed === '' && !hasScreenshot) {
-      return
-    }
+    const isFirstQuestion = conversation.messages.length === 0
 
-    const createdAt = now().toISOString()
-    if (hasScreenshot) {
+    if (isFirstQuestion) {
+      // The selection the conversation started from goes with the first question, which may have no text.
+      conversation.messages.push({ role: 'user', text: trimmed, image: FIRST_CAPTURE_NAME, createdAt })
+    } else if (trimmed === '' && !hasScreenshot) {
+      return
+    } else if (hasScreenshot) {
       conversation.messages.push({ role: 'user', text: trimmed, image: captureName, createdAt })
     } else {
       conversation.messages.push({ role: 'user', text: trimmed, createdAt })
