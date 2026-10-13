@@ -14,7 +14,7 @@ npm run release    # installer + zip in release\ (unsigned)
 
 ## Layout
 
-- `src/main/`: the Electron main process, organised by feature: `capture/`, `chat/` (provider clients, request building, error mapping), `layout/` (pure geometry), `storage/` (history, settings, encrypted keys), `windows/` (bubble, stage, overlay). `controller.ts` coordinates the windows; `ipc.ts` registers every IPC handler; `shortcut.ts` holds the global keyboard shortcut.
+- `src/main/`: the Electron main process, organised by feature: `capture/`, `chat/` (provider clients, request building, error mapping), `layout/` (pure geometry), `storage/` (history, settings, encrypted keys), `updates/` (asks GitHub for a newer version), `windows/` (bubble, stage, overlay). `controller.ts` coordinates the windows; `ipc.ts` registers every IPC handler; `shortcut.ts` holds the global keyboard shortcut.
 - `src/preload/index.ts`: exposes the typed `window.api`.
 - `src/renderer/`: three pages, one per window: `bubble` (the idle orb), `stage` (menu and panel), `overlay` (full-screen selection).
 - `src/shared/`: types, constants, the provider list, panel geometry (`geometry.ts`) and the IPC contract (`api.ts`), shared by all processes.
@@ -24,7 +24,7 @@ npm run release    # installer + zip in release\ (unsigned)
 - Only the main process holds API keys or touches the disk. Renderers ask through `window.api`. To add a call, update `shared/api.ts` (type + channel name), `preload/index.ts` and `main/ipc.ts`.
 - IPC input is untrusted: validate every argument in `ipc.ts` (see `cleanPatch`, `isValidId`).
 - Logic that doesn't need Electron goes in its own module with a `*.test.ts` next to it, taking dependencies as arguments (see `chatSession`, `history`, `settings`). Electron-only code (windows, controller, IPC) has no unit tests; check it by running the app.
-- Writes to disk that must survive a crash go to a temp file, then a rename (see `history.save`).
+- Writes to disk that must survive a crash go through `storage/writeFileSafely` (temp file, then rename).
 - Animate only `transform` and `opacity`. The orb rests when idle because every animated frame in a transparent window costs GPU time.
 - Comments explain why, in plain sentences. Keep the user-facing README in step with features.
 
