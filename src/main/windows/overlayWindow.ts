@@ -1,17 +1,10 @@
 import { BrowserWindow, type Display, type NativeImage } from 'electron'
 import { Channels } from '../../shared/api'
+import { isRect } from '../../shared/geometry'
 import type { Rect } from '../../shared/types'
 import { loadRenderer, secureWebPreferences, waitForMessage } from './common'
 
 const READY_TIMEOUT_MS = 1500
-
-function isRect(value: unknown): value is Rect {
-  if (typeof value !== 'object' || value === null) {
-    return false
-  }
-  const r = value as Record<string, unknown>
-  return ['x', 'y', 'width', 'height'].every((key) => typeof r[key] === 'number' && Number.isFinite(r[key]))
-}
 
 /**
  * Covers the display with the frozen screenshot and lets the user drag a rectangle on it.
