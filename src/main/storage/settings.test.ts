@@ -44,6 +44,14 @@ describe('settings store', () => {
     expect(settings.panelPosition).toEqual({ x: 300, y: 150 })
   })
 
+  it('remembers which display the bubble is on, and ignores a damaged one', () => {
+    createSettingsStore(dir, fakeCrypto).update({ bubble: { side: 'left', y: 300, displayId: 2528732444 } })
+    expect(createSettingsStore(dir, fakeCrypto).get().bubble).toEqual({ side: 'left', y: 300, displayId: 2528732444 })
+
+    writeFileSync(join(dir, 'settings.json'), JSON.stringify({ bubble: { side: 'left', y: 300, displayId: 'second' } }))
+    expect(createSettingsStore(dir, fakeCrypto).get().bubble).toEqual({ side: 'left', y: 300 })
+  })
+
   it('ignores a damaged panel size or position', () => {
     writeFileSync(join(dir, 'settings.json'), JSON.stringify({ panelSize: { width: -5, height: 700 }, panelPosition: { x: 'left', y: 3 } }))
     const settings = createSettingsStore(dir, fakeCrypto).get()

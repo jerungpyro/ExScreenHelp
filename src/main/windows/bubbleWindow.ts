@@ -1,7 +1,8 @@
 import { BrowserWindow, screen } from 'electron'
 import { Channels } from '../../shared/api'
-import { SNAP_DURATION_MS, WINDOW_MARGIN } from '../../shared/constants'
+import { BUBBLE_SIZE, SNAP_DURATION_MS, WINDOW_MARGIN } from '../../shared/constants'
 import type { BubbleAnchor, BubbleVisibility, Rect } from '../../shared/types'
+import { displayForAnchor } from '../displays'
 import { bubbleWindowBounds, snapBubble } from '../layout/snap'
 import { loadRenderer, secureWebPreferences, waitForMessage } from './common'
 
@@ -28,8 +29,8 @@ function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3)
 }
 
-export async function createBubbleWindow(anchor: BubbleAnchor, getWorkArea: () => Rect): Promise<BubbleWindow> {
-  const bounds = bubbleWindowBounds(anchor, getWorkArea())
+export async function createBubbleWindow(anchor: BubbleAnchor): Promise<BubbleWindow> {
+  const bounds = bubbleWindowBounds(anchor, displayForAnchor(anchor).workArea)
   const win = new BrowserWindow({
     ...bounds,
     frame: false,
@@ -86,7 +87,7 @@ export async function createBubbleWindow(anchor: BubbleAnchor, getWorkArea: () =
 
   function placeAt(newAnchor: BubbleAnchor): void {
     stopSnapAnimation()
-    const target = bubbleWindowBounds(newAnchor, getWorkArea())
+    const target = bubbleWindowBounds(newAnchor, displayForAnchor(newAnchor).workArea)
     moveWindow(target.x, target.y)
   }
 
@@ -103,11 +104,13 @@ export async function createBubbleWindow(anchor: BubbleAnchor, getWorkArea: () =
   }
 
   function endDrag(): BubbleAnchor {
-    const workArea = getWorkArea()
     const [windowX, windowY] = win.getPosition()
     const bubbleTopLeft = { x: windowX + WINDOW_MARGIN, y: windowY + WINDOW_MARGIN }
-    const snapped = snapBubble(bubbleTopLeft, workArea)
-    animateTo(bubbleWindowBounds(snapped, workArea))
+    // It settles on whichever display it was dropped on.
+    const bubbleCentre = { x: bubbleTopLeft.x + BUBBLE_SIZE / 2, y: bubbleTopLeft.y + BUBBLE_SIZE / 2 }
+    const display = screen.getDisplayNearestPoint(bubbleCentre)
+    const snapped: BubbleAnchor = { ...snapBubble(bubbleTopLeft, display.workArea), displayId: display.id }
+    animateTo(bubbleWindowBounds(snapped, display.workArea))
     return snapped
   }
 

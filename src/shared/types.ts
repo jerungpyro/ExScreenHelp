@@ -25,6 +25,8 @@ export type BubbleSide = 'left' | 'right'
 export interface BubbleAnchor {
   side: BubbleSide
   y: number
+  /** The display the bubble is on. Missing in settings saved before it could move between displays: the main one. */
+  displayId?: number
 }
 
 /**

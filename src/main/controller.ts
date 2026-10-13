@@ -12,7 +12,8 @@ import type { HistoryStore } from './storage/history'
 import type { SettingsStore } from './storage/settings'
 import type { BubbleWindow } from './windows/bubbleWindow'
 import { delay } from './windows/common'
-import { selectAreaOnOverlay } from './windows/overlayWindow'
+import { displayForAnchor } from './displays'
+import { selectAreaOnDisplays, type DisplayCapture } from './windows/overlayWindow'
 import type { StageWindow } from './windows/stageWindow'
 
 export interface Controller {
@@ -63,8 +64,9 @@ export function createController({ bubble, stage, settings, history, chatSession
   // The layout the stage was last opened with, to turn its window coordinates into screen ones.
   let openLayout: StageLayout | null = null
 
+  /** The work area of the display the bubble is on, where the menu and panel open too. */
   function workArea() {
-    return screen.getPrimaryDisplay().workArea
+    return displayForAnchor(settings.get().bubble).workArea
   }
 
   /** Opens the stage so its orb covers the bubble, then hands over from bubble to stage. */
@@ -140,19 +142,31 @@ export function createController({ bubble, stage, settings, history, chatSession
       // Give Windows a moment to finish composing the now-empty windows.
       await delay(60)
 
-      const display = screen.getPrimaryDisplay()
-      let image: Electron.NativeImage
-      try {
-        image = await captureDisplay(display)
-      } catch (err) {
-        console.error('Screen capture failed:', err)
+      // Every display is frozen, so the user can select on whichever one shows what they want. Capturing
+      // them all at once takes no longer than capturing one (measured: about 0.55 s either way, 1.1 s for two in turn).
+      const displays = screen.getAllDisplays()
+      const results = await Promise.allSettled(displays.map((display) => captureDisplay(display)))
+      const captures: DisplayCapture[] = []
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          captures.push({ display: displays[index], image: result.value })
+        } else {
+          console.error(`Screen capture failed for display ${displays[index].id}:`, result.reason)
+        }
+      })
+      if (captures.length === 0) {
         new Notification({ title: 'ExScreenHelp', body: "Couldn't capture the screen." }).show()
         await goBack()
         return
       }
 
-      const selection = await selectAreaOnOverlay(display, image)
-      const crop = selection ? toPhysicalRect(selection, display.size, image.getSize()) : null
+      const picked = await selectAreaOnDisplays(captures)
+      if (picked === null) {
+        await goBack()
+        return
+      }
+      const { display, image } = picked.capture
+      const crop = toPhysicalRect(picked.selection, display.size, image.getSize())
       if (crop === null) {
         await goBack()
         return

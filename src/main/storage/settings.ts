@@ -115,6 +115,9 @@ function readSettingsFile(path: string): Settings {
   }
   if (isBubbleAnchor(saved.bubble)) {
     settings.bubble = { side: saved.bubble.side, y: saved.bubble.y }
+    if (typeof saved.bubble.displayId === 'number' && Number.isFinite(saved.bubble.displayId)) {
+      settings.bubble.displayId = saved.bubble.displayId
+    }
   }
   // Whether these still fit the screen is checked each time the panel opens.
   if (isSize(saved.panelSize)) {

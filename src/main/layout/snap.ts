@@ -41,7 +41,7 @@ export function snapBubble(dropTopLeft: Point, workArea: Rect): BubbleAnchor {
   return { side, y: clampBubbleY(dropTopLeft.y, workArea) }
 }
 
-/** Makes sure a saved anchor is still fully on screen (e.g. after a resolution change). */
+/** Makes sure a saved anchor is still fully on screen (e.g. after a resolution change). Its display is kept. */
 export function clampAnchor(anchor: BubbleAnchor, workArea: Rect): BubbleAnchor {
-  return { side: anchor.side, y: clampBubbleY(anchor.y, workArea) }
+  return { ...anchor, y: clampBubbleY(anchor.y, workArea) }
 }

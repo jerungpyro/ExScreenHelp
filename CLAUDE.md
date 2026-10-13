@@ -14,7 +14,7 @@ npm run release    # installer + zip in release\ (unsigned)
 
 ## Layout
 
-- `src/main/`: the Electron main process, organised by feature: `capture/`, `chat/` (provider clients, request building, error mapping), `layout/` (pure geometry), `storage/` (history, settings, encrypted keys), `updates/` (asks GitHub for a newer version), `windows/` (bubble, stage, overlay). `controller.ts` coordinates the windows; `ipc.ts` registers every IPC handler; `shortcut.ts` holds the global keyboard shortcut.
+- `src/main/`: the Electron main process, organised by feature: `capture/`, `chat/` (provider clients, request building, error mapping), `layout/` (pure geometry), `storage/` (history, settings, encrypted keys), `updates/` (asks GitHub for a newer version), `windows/` (bubble, stage, overlay). `controller.ts` coordinates the windows; `ipc.ts` registers every IPC handler; `shortcut.ts` holds the global keyboard shortcut; `displays.ts` finds the display the bubble is on.
 - `src/preload/index.ts`: exposes the typed `window.api`.
 - `src/renderer/`: three pages, one per window: `bubble` (the idle orb), `stage` (menu and panel), `overlay` (full-screen selection).
 - `src/shared/`: types, constants, the provider list, panel geometry (`geometry.ts`) and the IPC contract (`api.ts`), shared by all processes.

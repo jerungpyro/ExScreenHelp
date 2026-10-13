@@ -3,6 +3,7 @@ import { app, globalShortcut, net, safeStorage, screen, type Tray } from 'electr
 import { clientFromSettings, type FetchFunction } from './chat/chatClient'
 import { createChatSession } from './chat/chatSession'
 import { createController, forwardChatEvents } from './controller'
+import { displayForAnchor } from './displays'
 import { applyLaunchAtStartup, registerIpc } from './ipc'
 import { clampAnchor } from './layout/snap'
 import { createGlobalShortcut } from './shortcut'
@@ -40,11 +41,11 @@ async function start(): Promise<void> {
   history.removeUnsent()
   handleCaptureProtocol(history)
 
-  const workArea = () => screen.getPrimaryDisplay().workArea
-  const anchor = clampAnchor(settings.get().bubble, workArea())
+  const savedAnchor = settings.get().bubble
+  const anchor = clampAnchor(savedAnchor, displayForAnchor(savedAnchor).workArea)
 
   const stage = await createStageWindow()
-  const bubble = await createBubbleWindow(anchor, workArea)
+  const bubble = await createBubbleWindow(anchor)
 
   // Send AI requests the way the browser does, so they use Windows' proxy settings and trusted certificates.
   // Node's own fetch ignores both, so it can't connect on networks with a proxy or antivirus HTTPS scanning.
