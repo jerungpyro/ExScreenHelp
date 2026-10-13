@@ -1,0 +1,53 @@
+name: Bug report
+description: Something doesn't work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. Please don't paste API keys, and check any screenshot for private information before attaching it.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Include what you expected to happen instead, and any error message the app showed.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Click the orb and choose Select area
+        2. Drag a box on the second screen
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: ExScreenHelp version
+      description: Shown at the bottom of Settings.
+      placeholder: '1.6.0'
+    validations:
+      required: true
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Provider
+      options:
+        - DeepSeek
+        - OpenAI
+        - Claude
+        - Gemini
+        - Not about answers
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2
+  - type: textarea
+    id: setup
+    attributes:
+      label: Anything else about your setup?
+      description: For example the number of screens and their scaling, a proxy, or antivirus that scans HTTPS.
