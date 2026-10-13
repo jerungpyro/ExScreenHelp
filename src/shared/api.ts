@@ -9,7 +9,8 @@ import type {
   SettingsPatch,
   SettingsView,
   StageOpenPayload,
-  TestConnectionResult
+  TestConnectionResult,
+  UpdateStatus
 } from './types'
 
 export type Unsubscribe = () => void
@@ -92,6 +93,8 @@ export interface ExScreenApi {
     setApiKey(provider: ProviderId, key: string): Promise<SettingsView>
     /** Tries the saved settings with a tiny request. */
     testConnection(): Promise<TestConnectionResult>
+    /** Whether a newer version has been released. Asks GitHub at most once an hour. */
+    updateStatus(): Promise<UpdateStatus>
   }
 
   overlay: {
@@ -145,6 +148,7 @@ export const Channels = {
   settingsSave: 'settings:save',
   settingsSetApiKey: 'settings:set-api-key',
   settingsTest: 'settings:test',
+  settingsUpdateStatus: 'settings:update-status',
 
   overlayImage: 'overlay:image',
   overlayReady: 'overlay:ready',

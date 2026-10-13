@@ -63,11 +63,13 @@ You can change the model in Settings, as long as it accepts images. Each provide
 - **Move the orb:** drag it anywhere. It snaps to the nearest screen edge and fades when you're not using it.
 - **Tray icon:** show or hide the orb, or quit the app.
 - **Launch at startup:** turn it on in Settings to start ExScreenHelp when you sign in to Windows.
+- **Updates:** the bottom of Settings shows which version you have, and a **Download** button when a newer one is out.
 
 ## Privacy
 
 - Only the area you select, or an image you paste, is saved or sent. The app briefly screenshots the whole screen to freeze it while you select, but keeps that image in memory only.
 - The selected area, your questions and your Preferences are sent to the provider you chose (or to the API address set in Settings), and nowhere else. There is no analytics or telemetry.
+- When you open Settings, the app asks GitHub for the latest version number (at most once an hour). Nothing about you or your chats goes with it.
 - Your API keys are encrypted with Windows' built-in protection (DPAPI), so only your Windows account can read them.
 - Conversations and their screenshots are stored on your PC in `%APPDATA%\ExScreenHelp\`. Uninstalling keeps them. To erase them, delete that folder.
 

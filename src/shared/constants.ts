@@ -47,5 +47,8 @@ export const MAX_PASTED_BYTES = 30 * 1024 * 1024
 /** The file name of a conversation's first screenshot: the selection it started from. */
 export const FIRST_CAPTURE_NAME = 'capture.png'
 
+/** Where new versions are downloaded from. */
+export const RELEASES_PAGE_URL = 'https://github.com/jerungpyro/ExScreenHelp/releases/latest'
+
 export const TITLE_MAX_LENGTH = 60
 export const NEW_CAPTURE_TITLE = 'New capture'

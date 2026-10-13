@@ -4,7 +4,7 @@ import { MAX_PREFERENCES_LENGTH } from '../shared/constants'
 import { isRect } from '../shared/geometry'
 import { isProviderId } from '../shared/providers'
 import { isShortcutSetting } from '../shared/shortcuts'
-import type { SettingsPatch, SettingsView } from '../shared/types'
+import type { SettingsPatch, SettingsView, UpdateStatus } from '../shared/types'
 import { pngFromPastedImage } from './capture/pastedImage'
 import type { ClientSetup } from './chat/chatClient'
 import type { ChatSession } from './chat/chatSession'
@@ -26,6 +26,7 @@ interface IpcDeps {
   shortcut: GlobalShortcut
   /** The same client the chat uses, so the test checks exactly what will be used. */
   getClient(): ClientSetup
+  updateStatus(): Promise<UpdateStatus>
 }
 
 function isString(value: unknown): value is string {
@@ -53,7 +54,8 @@ function settingsView(settings: SettingsStore, shortcut: GlobalShortcut): Settin
     launchAtStartup,
     shortcut: chosenShortcut,
     shortcutUnavailable: shortcut.isUnavailable(),
-    apiKeyHints
+    apiKeyHints,
+    appVersion: app.getVersion()
   }
 }
 
@@ -92,7 +94,8 @@ function cleanPatch(value: unknown): SettingsPatch {
   return patch
 }
 
-export function registerIpc({ bubble, stage, controller, chatSession, history, settings, shortcut, getClient }: IpcDeps): void {
+export function registerIpc(deps: IpcDeps): void {
+  const { bubble, stage, controller, chatSession, history, settings, shortcut, getClient, updateStatus } = deps
   // ----- Bubble -----
   ipcMain.on(Channels.bubbleDragStart, () => bubble.startDrag())
   ipcMain.on(Channels.bubbleDragMove, () => bubble.dragMove())
@@ -183,6 +186,7 @@ export function registerIpc({ bubble, stage, controller, chatSession, history, s
     return settingsView(settings, shortcut)
   })
   ipcMain.handle(Channels.settingsTest, () => testConnection(getClient))
+  ipcMain.handle(Channels.settingsUpdateStatus, () => updateStatus())
 
   // ----- Links in answers open in the default browser -----
   ipcMain.on(Channels.openExternal, (_event, url: unknown) => {

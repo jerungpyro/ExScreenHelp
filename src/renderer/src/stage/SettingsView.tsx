@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { MAX_PREFERENCES_LENGTH } from '../../../shared/constants'
+import { MAX_PREFERENCES_LENGTH, RELEASES_PAGE_URL } from '../../../shared/constants'
 import { DEFAULT_PROVIDER, PROVIDER_IDS, PROVIDERS, type ProviderId } from '../../../shared/providers'
 import { NO_SHORTCUT, SHORTCUT_CHOICES } from '../../../shared/shortcuts'
-import type { SettingsView as SettingsData, TestConnectionResult } from '../../../shared/types'
+import type { SettingsView as SettingsData, TestConnectionResult, UpdateStatus } from '../../../shared/types'
 
 interface SettingsViewProps {
   notice: string | null
@@ -10,6 +10,13 @@ interface SettingsViewProps {
 }
 
 type SaveState = 'idle' | 'saving' | 'saved'
+
+function updateMessage(status: UpdateStatus | null): string {
+  if (status === null) return 'Checking for a newer version…'
+  if (status.latestVersion === null) return "Couldn't check for a newer version."
+  if (status.updateAvailable) return `Version ${status.latestVersion} is available.`
+  return 'This is the latest version.'
+}
 
 export function SettingsView({ notice, onNoticeDismissed }: SettingsViewProps) {
   const [settings, setSettings] = useState<SettingsData | null>(null)
@@ -23,6 +30,7 @@ export function SettingsView({ notice, onNoticeDismissed }: SettingsViewProps) {
   const [testResult, setTestResult] = useState<TestConnectionResult | null>(null)
   const [preferences, setPreferences] = useState('')
   const [preferencesSaveState, setPreferencesSaveState] = useState<SaveState>('idle')
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null)
 
   const hasChanges =
     settings !== null &&
@@ -40,6 +48,7 @@ export function SettingsView({ notice, onNoticeDismissed }: SettingsViewProps) {
       setBaseUrl(loaded.baseUrl)
       setPreferences(loaded.preferences)
     })
+    void window.api.settings.updateStatus().then(setUpdateStatus)
   }, [])
 
   /** Switching provider fills in its model and address (or what was saved, when switching back). */
@@ -319,6 +328,20 @@ export function SettingsView({ notice, onNoticeDismissed }: SettingsViewProps) {
         >
           <span className="switch__thumb" />
         </button>
+      </div>
+
+      <div className="settings__group settings__group--row">
+        <div>
+          <p className="field__label">Version {settings.appVersion}</p>
+          <p className="field__help" role="status">
+            {updateMessage(updateStatus)}
+          </p>
+        </div>
+        {updateStatus?.updateAvailable && (
+          <button type="button" className="button" onClick={() => window.api.openExternal(RELEASES_PAGE_URL)}>
+            Download
+          </button>
+        )}
       </div>
     </div>
   )

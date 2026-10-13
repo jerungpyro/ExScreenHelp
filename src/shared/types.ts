@@ -107,6 +107,15 @@ export interface SettingsView {
   shortcutUnavailable: boolean
   /** For each provider: "•••• abcd" when a key is saved, otherwise null. */
   apiKeyHints: Record<ProviderId, string | null>
+  /** The version of ExScreenHelp that is running, e.g. 1.4.0. */
+  appVersion: string
+}
+
+export interface UpdateStatus {
+  currentVersion: string
+  /** The newest released version, or null when GitHub couldn't be asked. */
+  latestVersion: string | null
+  updateAvailable: boolean
 }
 
 export interface SettingsPatch {

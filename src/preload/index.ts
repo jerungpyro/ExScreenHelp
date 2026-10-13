@@ -57,7 +57,8 @@ const api: ExScreenApi = {
     get: () => ipcRenderer.invoke(Channels.settingsGet),
     save: (patch) => ipcRenderer.invoke(Channels.settingsSave, patch),
     setApiKey: (provider, key) => ipcRenderer.invoke(Channels.settingsSetApiKey, provider, key),
-    testConnection: () => ipcRenderer.invoke(Channels.settingsTest)
+    testConnection: () => ipcRenderer.invoke(Channels.settingsTest),
+    updateStatus: () => ipcRenderer.invoke(Channels.settingsUpdateStatus)
   },
 
   overlay: {

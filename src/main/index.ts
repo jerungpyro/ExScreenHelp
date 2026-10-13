@@ -10,6 +10,7 @@ import { handleCaptureProtocol, registerCaptureScheme } from './storage/captureP
 import { createHistoryStore } from './storage/history'
 import { createSettingsStore } from './storage/settings'
 import { createTray } from './tray'
+import { createUpdateChecker } from './updates/updateCheck'
 import { createBubbleWindow } from './windows/bubbleWindow'
 import { createStageWindow } from './windows/stageWindow'
 
@@ -62,7 +63,9 @@ async function start(): Promise<void> {
 
   const controller = createController({ bubble, stage, settings, history, chatSession })
   const shortcut = createGlobalShortcut(() => void controller.shortcutPressed())
-  registerIpc({ bubble, stage, controller, chatSession, history, settings, shortcut, getClient })
+  // Only asked when Settings opens, so the app makes no requests in the background.
+  const updateStatus = createUpdateChecker(app.getVersion(), fetchLikeBrowser)
+  registerIpc({ bubble, stage, controller, chatSession, history, settings, shortcut, getClient, updateStatus })
   applyLaunchAtStartup(settings.get().launchAtStartup)
   shortcut.set(settings.get().shortcut)
   // Hand the shortcut back to Windows as we quit, as Electron recommends.
