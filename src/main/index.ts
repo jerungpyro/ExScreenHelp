@@ -1,10 +1,11 @@
 import { join } from 'node:path'
-import { app, net, safeStorage, screen, type Tray } from 'electron'
+import { app, globalShortcut, net, safeStorage, screen, type Tray } from 'electron'
 import { clientFromSettings, type FetchFunction } from './chat/chatClient'
 import { createChatSession } from './chat/chatSession'
 import { createController, forwardChatEvents } from './controller'
 import { applyLaunchAtStartup, registerIpc } from './ipc'
 import { clampAnchor } from './layout/snap'
+import { createGlobalShortcut } from './shortcut'
 import { handleCaptureProtocol, registerCaptureScheme } from './storage/captureProtocol'
 import { createHistoryStore } from './storage/history'
 import { createSettingsStore } from './storage/settings'
@@ -58,8 +59,12 @@ async function start(): Promise<void> {
   })
 
   const controller = createController({ bubble, stage, settings, history, chatSession })
-  registerIpc({ bubble, controller, chatSession, history, settings, getClient })
+  const shortcut = createGlobalShortcut(() => void controller.shortcutPressed())
+  registerIpc({ bubble, controller, chatSession, history, settings, shortcut, getClient })
   applyLaunchAtStartup(settings.get().launchAtStartup)
+  shortcut.set(settings.get().shortcut)
+  // Hand the shortcut back to Windows as we quit, as Electron recommends.
+  app.on('will-quit', () => globalShortcut.unregisterAll())
 
   const showBubble = () => {
     bubble.window.showInactive()

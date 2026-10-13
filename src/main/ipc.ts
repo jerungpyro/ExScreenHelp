@@ -2,11 +2,13 @@ import { app, ipcMain, shell } from 'electron'
 import { Channels } from '../shared/api'
 import { MAX_PREFERENCES_LENGTH } from '../shared/constants'
 import { isProviderId } from '../shared/providers'
+import { isShortcutSetting } from '../shared/shortcuts'
 import type { SettingsPatch, SettingsView } from '../shared/types'
 import type { ClientSetup } from './chat/chatClient'
 import type { ChatSession } from './chat/chatSession'
 import { testConnection } from './chat/testConnection'
 import type { Controller } from './controller'
+import type { GlobalShortcut } from './shortcut'
 import { isValidCaptureName, isValidId, type HistoryStore } from './storage/history'
 import type { SettingsStore } from './storage/settings'
 import type { BubbleWindow } from './windows/bubbleWindow'
@@ -17,6 +19,7 @@ interface IpcDeps {
   chatSession: ChatSession
   history: HistoryStore
   settings: SettingsStore
+  shortcut: GlobalShortcut
   /** The same client the chat uses, so the test checks exactly what will be used. */
   getClient(): ClientSetup
 }
@@ -30,15 +33,24 @@ function orbOriginFrom(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined
 }
 
-function settingsView(settings: SettingsStore): SettingsView {
-  const { provider, model, baseUrl, preferences, launchAtStartup } = settings.get()
+function settingsView(settings: SettingsStore, shortcut: GlobalShortcut): SettingsView {
+  const { provider, model, baseUrl, preferences, launchAtStartup, shortcut: chosenShortcut } = settings.get()
   const apiKeyHints = {
     deepseek: settings.apiKeyHint('deepseek'),
     openai: settings.apiKeyHint('openai'),
     claude: settings.apiKeyHint('claude'),
     gemini: settings.apiKeyHint('gemini')
   }
-  return { provider, model, baseUrl, preferences, launchAtStartup, apiKeyHints }
+  return {
+    provider,
+    model,
+    baseUrl,
+    preferences,
+    launchAtStartup,
+    shortcut: chosenShortcut,
+    shortcutUnavailable: shortcut.isUnavailable(),
+    apiKeyHints
+  }
 }
 
 /** Registering at login only makes sense for the built app; in development it would register electron.exe. */
@@ -70,10 +82,13 @@ function cleanPatch(value: unknown): SettingsPatch {
   if (typeof raw.launchAtStartup === 'boolean') {
     patch.launchAtStartup = raw.launchAtStartup
   }
+  if (isShortcutSetting(raw.shortcut)) {
+    patch.shortcut = raw.shortcut
+  }
   return patch
 }
 
-export function registerIpc({ bubble, controller, chatSession, history, settings, getClient }: IpcDeps): void {
+export function registerIpc({ bubble, controller, chatSession, history, settings, shortcut, getClient }: IpcDeps): void {
   // ----- Bubble -----
   ipcMain.on(Channels.bubbleDragStart, () => bubble.startDrag())
   ipcMain.on(Channels.bubbleDragMove, () => bubble.dragMove())
@@ -127,20 +142,23 @@ export function registerIpc({ bubble, controller, chatSession, history, settings
   })
 
   // ----- Settings -----
-  ipcMain.handle(Channels.settingsGet, () => settingsView(settings))
+  ipcMain.handle(Channels.settingsGet, () => settingsView(settings, shortcut))
   ipcMain.handle(Channels.settingsSave, (_event, value: unknown) => {
     const patch = cleanPatch(value)
     settings.update(patch)
     if (patch.launchAtStartup !== undefined) {
       applyLaunchAtStartup(patch.launchAtStartup)
     }
-    return settingsView(settings)
+    if (patch.shortcut !== undefined) {
+      shortcut.set(patch.shortcut)
+    }
+    return settingsView(settings, shortcut)
   })
   ipcMain.handle(Channels.settingsSetApiKey, (_event, provider: unknown, key: unknown) => {
     if (isProviderId(provider) && isString(key)) {
       settings.setApiKey(provider, key)
     }
-    return settingsView(settings)
+    return settingsView(settings, shortcut)
   })
   ipcMain.handle(Channels.settingsTest, () => testConnection(getClient))
 

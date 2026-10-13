@@ -760,6 +760,12 @@
   line-height: 1.5;
 }
 
+/* Only the select gets a colour scheme, so its drop-down list follows Windows' light or dark mode. */
+.field__input--select {
+  color-scheme: light dark;
+  cursor: pointer;
+}
+
 .field__input--mono {
   font-family: var(--font-code);
   font-size: 13px;

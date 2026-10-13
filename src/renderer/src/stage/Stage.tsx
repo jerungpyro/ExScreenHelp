@@ -1,7 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion, type Transition } from 'motion/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
-import { PROVIDERS } from '../../../shared/providers'
+import { missingKeyNotice } from '../../../shared/providers'
 import type { ChatState, StageLayout } from '../../../shared/types'
 import { Orb, type OrbHandle } from '../components/Orb'
 import { EMPTY_COMPOSER, type ComposerPatch, type ComposerState } from './composer'
@@ -37,6 +37,8 @@ export function Stage() {
   const [layout, setLayout] = useState<StageLayout | null>(null)
   const [mode, setMode] = useState<Mode>('hidden')
   const [view, setView] = useState<PanelView>('history')
+  const viewRef = useRef(view)
+  viewRef.current = view
   const [chat, setChat] = useState<ChatState | null>(null)
   const chatRef = useRef(chat)
   chatRef.current = chat
@@ -101,7 +103,7 @@ export function Stage() {
         setOpenCount((count) => count + 1)
         setOrbOrigin(payload.orbOrigin)
         setMode('orb')
-        setNotice(null)
+        setNotice(payload.notice ?? null)
         let startView = payload.view
         // Clicking the bubble asks for the menu. If a conversation was open before, go straight back to it instead.
         if (startView === 'menu' && chatRef.current !== null) {
@@ -129,6 +131,23 @@ export function Stage() {
     return api.stage.onClear(() => {
       flushSync(() => setMode('hidden'))
       afterPaint(() => api.stage.cleared())
+    })
+  }, [])
+
+  // The keyboard shortcut while we're open: add a screenshot to the chat on screen, or start a new chat.
+  // A chat that is still being answered takes one too; it waits in the follow-up box.
+  useEffect(() => {
+    return api.stage.onShortcut(() => {
+      const currentMode = modeRef.current
+      if (currentMode !== 'menu' && currentMode !== 'panel') {
+        return
+      }
+      const currentChat = chatRef.current
+      if (currentMode === 'panel' && viewRef.current === 'conversation' && currentChat !== null) {
+        void addScreenshot(currentChat.conversation.id)
+      } else {
+        void selectArea()
+      }
     })
   }, [])
 
@@ -215,7 +234,7 @@ export function Stage() {
   async function hasApiKeyOrExplain(): Promise<boolean> {
     const settings = await api.settings.get()
     if (settings.apiKeyHints[settings.provider] === null) {
-      setNotice(`Add your ${PROVIDERS[settings.provider].name} API key to start asking about your screen.`)
+      setNotice(missingKeyNotice(settings.provider))
       openView('settings')
       return false
     }

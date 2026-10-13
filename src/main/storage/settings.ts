@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { DEFAULT_PROVIDER, isProviderId, PROVIDERS, type ProviderId } from '../../shared/providers'
+import { DEFAULT_SHORTCUT, isShortcutSetting } from '../../shared/shortcuts'
 import type { BubbleAnchor, Settings } from '../../shared/types'
 
 const SETTINGS_FILE = 'settings.json'
@@ -38,6 +39,7 @@ function defaultSettings(): Settings {
     baseUrl: PROVIDERS[DEFAULT_PROVIDER].baseUrl,
     preferences: '',
     launchAtStartup: false,
+    shortcut: DEFAULT_SHORTCUT,
     // The real position is clamped to the screen when the bubble is first placed.
     bubble: { side: 'right', y: 240 }
   }
@@ -84,6 +86,9 @@ function readSettingsFile(path: string): Settings {
   }
   if (typeof saved.launchAtStartup === 'boolean') {
     settings.launchAtStartup = saved.launchAtStartup
+  }
+  if (isShortcutSetting(saved.shortcut)) {
+    settings.shortcut = saved.shortcut
   }
   if (isBubbleAnchor(saved.bubble)) {
     settings.bubble = { side: saved.bubble.side, y: saved.bubble.y }

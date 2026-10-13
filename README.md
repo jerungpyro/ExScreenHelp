@@ -34,13 +34,14 @@ You can change the model in Settings, as long as it accepts images. Each provide
 ## Using it
 
 - **Ask about something on screen:** click the orb, choose **Select area** (or **New selection** at the top of the panel) and drag a box. The screen freezes while you select. Press **Esc** to cancel.
+- **Keyboard shortcut:** press **Ctrl+Alt+Space** from any app to go straight to selecting an area. With a chat open, it adds a screenshot to your next follow-up instead. Choose a different shortcut, or turn it off, in Settings.
 - **Follow up:** type in the box under the answer. **Enter** sends, **Shift+Enter** adds a new line.
 - **Pick up where you left off:** clicking the orb reopens the conversation you last had open. Click the orb at the top of the panel (or press **Esc**) to close it again.
 - **History:** reopen any earlier conversation and keep asking.
 - **Preferences:** in Settings, tell the AI how you like your answers, for example which language to use, how much detail to give, or how to explain code. They're sent with every question, whichever provider you use.
 - **Move the orb:** drag it anywhere. It snaps to the nearest screen edge and fades when you're not using it.
 - **Tray icon:** show or hide the orb, or quit the app.
-- **Settings:** provider, API key, model, API address, Preferences and **Launch at startup**.
+- **Settings:** provider, API key, model, API address, Preferences, the keyboard shortcut and **Launch at startup**.
 
 ## Privacy
 
@@ -66,7 +67,7 @@ Other commands: `npm test` (unit tests), `npm run typecheck`, `npm run make-icon
 
 `%APPDATA%\ExScreenHelp\`:
 
-- `settings.json`: provider, model, API address, preferences, bubble position, launch at startup
+- `settings.json`: provider, model, API address, preferences, keyboard shortcut, bubble position, launch at startup
 - `apikey.bin`: your DeepSeek API key, encrypted with DPAPI (the name is kept from version 1.0, when DeepSeek was the only provider)
 - `apikey-openai.bin`, `apikey-claude.bin`, `apikey-gemini.bin`: the other providers' keys, encrypted the same way
 - `history\<id>\`: one folder per conversation, holding `conversation.json` and its screenshots (`capture.png`, `capture-2.png`, …)

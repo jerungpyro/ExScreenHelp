@@ -52,6 +52,11 @@ export const PROVIDERS: Record<ProviderId, Provider> = {
 /** DeepSeek was the only provider before version 1.1, so it stays the default. */
 export const DEFAULT_PROVIDER: ProviderId = 'deepseek'
 
+/** Shown in Settings when someone tries to select an area before saving a key for the chosen provider. */
+export function missingKeyNotice(provider: ProviderId): string {
+  return `Add your ${PROVIDERS[provider].name} API key to start asking about your screen.`
+}
+
 export function isProviderId(value: unknown): value is ProviderId {
   return typeof value === 'string' && PROVIDER_IDS.includes(value as ProviderId)
 }

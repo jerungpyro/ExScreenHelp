@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { MAX_PREFERENCES_LENGTH } from '../../../shared/constants'
 import { DEFAULT_PROVIDER, PROVIDER_IDS, PROVIDERS, type ProviderId } from '../../../shared/providers'
+import { NO_SHORTCUT, SHORTCUT_CHOICES } from '../../../shared/shortcuts'
 import type { SettingsView as SettingsData, TestConnectionResult } from '../../../shared/types'
 
 interface SettingsViewProps {
@@ -118,6 +119,11 @@ export function SettingsView({ notice, onNoticeDismissed }: SettingsViewProps) {
     setPreferences(updated.preferences)
     setPreferencesSaveState('saved')
     setTimeout(() => setPreferencesSaveState('idle'), 1600)
+  }
+
+  async function chooseShortcut(shortcut: string): Promise<void> {
+    const updated = await window.api.settings.save({ shortcut })
+    setSettings(updated)
   }
 
   async function toggleStartup(): Promise<void> {
@@ -269,6 +275,32 @@ export function SettingsView({ notice, onNoticeDismissed }: SettingsViewProps) {
           </button>
         </div>
       </form>
+
+      <div className="settings__group">
+        <label className="field__label" htmlFor="shortcut">
+          Keyboard shortcut
+        </label>
+        <select
+          id="shortcut"
+          className="field__input field__input--select"
+          value={settings.shortcut}
+          onChange={(event) => void chooseShortcut(event.target.value)}
+        >
+          {SHORTCUT_CHOICES.map((choice) => (
+            <option key={choice} value={choice}>
+              {choice}
+            </option>
+          ))}
+          <option value={NO_SHORTCUT}>Off</option>
+        </select>
+        {settings.shortcutUnavailable ? (
+          <p className="field__error" role="status">
+            Another app is already using {settings.shortcut}. Choose a different one.
+          </p>
+        ) : (
+          <p className="field__help">Press it anywhere to select an area. In an open chat, it adds a screenshot.</p>
+        )}
+      </div>
 
       <div className="settings__group settings__group--row">
         <div>

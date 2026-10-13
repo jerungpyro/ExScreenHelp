@@ -30,8 +30,22 @@ describe('settings store', () => {
       baseUrl: 'https://api.deepseek.com',
       preferences: '',
       launchAtStartup: false,
+      shortcut: 'Ctrl+Alt+Space',
       bubble: { side: 'right', y: 240 }
     })
+  })
+
+  it('saves the chosen shortcut, or that it is off, and reads it back', () => {
+    createSettingsStore(dir, fakeCrypto).update({ shortcut: 'Alt+Shift+Space' })
+    expect(createSettingsStore(dir, fakeCrypto).get().shortcut).toBe('Alt+Shift+Space')
+
+    createSettingsStore(dir, fakeCrypto).update({ shortcut: '' })
+    expect(createSettingsStore(dir, fakeCrypto).get().shortcut).toBe('')
+  })
+
+  it('uses the default shortcut when the saved one is not offered', () => {
+    writeFileSync(join(dir, 'settings.json'), JSON.stringify({ shortcut: 'Alt+F4' }))
+    expect(createSettingsStore(dir, fakeCrypto).get().shortcut).toBe('Ctrl+Alt+Space')
   })
 
   it('saves the preferences and reads them back', () => {

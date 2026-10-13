@@ -84,6 +84,8 @@ export interface Settings {
   /** The user's own instructions for how answers are written, sent with every request. Empty when unset. */
   preferences: string
   launchAtStartup: boolean
+  /** The keyboard shortcut that selects an area from anywhere (an Electron accelerator), or '' when off. */
+  shortcut: string
   bubble: BubbleAnchor
 }
 
@@ -94,6 +96,9 @@ export interface SettingsView {
   baseUrl: string
   preferences: string
   launchAtStartup: boolean
+  shortcut: string
+  /** True when the chosen shortcut couldn't be registered, usually because another app already uses it. */
+  shortcutUnavailable: boolean
   /** For each provider: "•••• abcd" when a key is saved, otherwise null. */
   apiKeyHints: Record<ProviderId, string | null>
 }
@@ -104,6 +109,7 @@ export interface SettingsPatch {
   baseUrl?: string
   preferences?: string
   launchAtStartup?: boolean
+  shortcut?: string
 }
 
 // ---------- Chat ----------
@@ -159,6 +165,8 @@ export interface StageOpenPayload {
   orbOrigin?: number
   /** A screenshot just added to `chat`'s conversation, to show as a chip in the follow-up box. */
   pendingCapture?: string
+  /** A message to show at the top of the view, such as why Settings opened. */
+  notice?: string
 }
 
 export interface BubbleVisibility {

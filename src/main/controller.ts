@@ -1,5 +1,6 @@
 import { Notification, screen } from 'electron'
 import { Channels } from '../shared/api'
+import { missingKeyNotice } from '../shared/providers'
 import type { ChatState, StageView } from '../shared/types'
 import { captureDisplay } from './capture/capture'
 import { toPhysicalRect } from './capture/crop'
@@ -23,6 +24,8 @@ export interface Controller {
    * with one, the screenshot is attached to that conversation's next follow-up.
    */
   selectArea(addToConversationId?: string): Promise<void>
+  /** The keyboard shortcut was pressed, from anywhere. */
+  shortcutPressed(): Promise<void>
   /** Closes everything immediately (tray "Hide", display changes). */
   closeImmediately(): Promise<void>
   /** Re-positions the bubble after the screen layout changed. */
@@ -43,6 +46,7 @@ interface OpenStageOptions {
   conversationId?: string
   orbOrigin?: number
   pendingCapture?: string
+  notice?: string
 }
 
 /**
@@ -67,7 +71,14 @@ export function createController({ bubble, stage, settings, history, chatSession
       chat = chatSession.getState(options.conversationId) ?? undefined
     }
 
-    await stage.prepare({ layout, view, chat, orbOrigin: options.orbOrigin, pendingCapture: options.pendingCapture })
+    await stage.prepare({
+      layout,
+      view,
+      chat,
+      orbOrigin: options.orbOrigin,
+      pendingCapture: options.pendingCapture,
+      notice: options.notice
+    })
     await bubble.setOrbVisible(false)
     stage.activate()
     stageOpen = true
@@ -163,6 +174,27 @@ export function createController({ bubble, stage, settings, history, chatSession
     }
   }
 
+  async function shortcutPressed(): Promise<void> {
+    if (transitioning) {
+      return
+    }
+    // Only the stage knows whether a chat is on screen, so it decides whether this adds to it.
+    if (stageOpen) {
+      stage.send(Channels.stageShortcut, null)
+      return
+    }
+    if (settings.hasApiKey()) {
+      await selectArea()
+      return
+    }
+    transitioning = true
+    try {
+      await openStage('settings', { notice: missingKeyNotice(settings.get().provider) })
+    } finally {
+      transitioning = false
+    }
+  }
+
   async function closeImmediately(): Promise<void> {
     if (stageOpen) {
       await stage.clear()
@@ -187,7 +219,15 @@ export function createController({ bubble, stage, settings, history, chatSession
     await bubble.setOrbVisible(true)
   }
 
-  return { bubbleClicked, stageClosed, selectArea, closeImmediately, refreshPosition, recoverAfterReload }
+  return {
+    bubbleClicked,
+    stageClosed,
+    selectArea,
+    shortcutPressed,
+    closeImmediately,
+    refreshPosition,
+    recoverAfterReload
+  }
 }
 
 /** Forwards chat session events to the stage window. */

@@ -51,6 +51,8 @@ export interface ExScreenApi {
     selectArea(): void
     /** Select an area to attach to this conversation's next follow-up. */
     addScreenshot(conversationId: string): void
+    /** The keyboard shortcut was pressed while the stage is open; the stage decides what it selects for. */
+    onShortcut(callback: () => void): Unsubscribe
   }
 
   chat: {
@@ -110,6 +112,7 @@ export const Channels = {
   stageClosed: 'stage:closed',
   stageSelectArea: 'stage:select-area',
   stageAddScreenshot: 'stage:add-screenshot',
+  stageShortcut: 'stage:shortcut',
 
   chatState: 'chat:state',
   chatChunk: 'chat:chunk',

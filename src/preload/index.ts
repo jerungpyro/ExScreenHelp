@@ -28,7 +28,8 @@ const api: ExScreenApi = {
     cleared: () => ipcRenderer.send(Channels.stageCleared),
     closed: (orbOrigin) => ipcRenderer.send(Channels.stageClosed, orbOrigin),
     selectArea: () => ipcRenderer.send(Channels.stageSelectArea),
-    addScreenshot: (conversationId) => ipcRenderer.send(Channels.stageAddScreenshot, conversationId)
+    addScreenshot: (conversationId) => ipcRenderer.send(Channels.stageAddScreenshot, conversationId),
+    onShortcut: (callback) => subscribe(Channels.stageShortcut, () => callback())
   },
 
   chat: {
