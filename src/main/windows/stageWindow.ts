@@ -59,6 +59,30 @@ export async function createStageWindow(): Promise<StageWindow> {
   // Between activate() and clear(). A late report from the renderer must never make the closed,
   // empty window catch clicks, since it can cover the whole work area.
   let open = false
+  // Whether the renderer last said the pointer was over something, so the window should take clicks.
+  let interactive = true
+
+  function applyInteractive(): void {
+    if (interactive) {
+      win.setIgnoreMouseEvents(false)
+    } else {
+      // forward keeps mouse moves coming, so the renderer notices when the pointer is back over the panel.
+      win.setIgnoreMouseEvents(true, { forward: true })
+    }
+  }
+
+  // A hung page can't report that the pointer left the panel, so while taking clicks it would block
+  // them across the whole work area. Let them through until it responds again.
+  win.on('unresponsive', () => {
+    if (open) {
+      win.setIgnoreMouseEvents(true, { forward: true })
+    }
+  })
+  win.on('responsive', () => {
+    if (open) {
+      applyInteractive()
+    }
+  })
 
   async function prepare(payload: StageOpenPayload): Promise<void> {
     win.setBounds(payload.layout.windowBounds)
@@ -70,7 +94,8 @@ export async function createStageWindow(): Promise<StageWindow> {
   function activate(): void {
     open = true
     // Clickable until the renderer reports what the pointer is over.
-    win.setIgnoreMouseEvents(false)
+    interactive = true
+    applyInteractive()
     win.setFocusable(true)
     win.focus()
     win.webContents.send(Channels.stageActivate)
@@ -86,16 +111,12 @@ export async function createStageWindow(): Promise<StageWindow> {
     win.setFocusable(false)
   }
 
-  function setInteractive(interactive: boolean): void {
+  function setInteractive(value: boolean): void {
     if (!open) {
       return
     }
-    if (interactive) {
-      win.setIgnoreMouseEvents(false)
-    } else {
-      // forward keeps mouse moves coming, so the renderer notices when the pointer is back over the panel.
-      win.setIgnoreMouseEvents(true, { forward: true })
-    }
+    interactive = value
+    applyInteractive()
   }
 
   function cursorPosition(): Point {
