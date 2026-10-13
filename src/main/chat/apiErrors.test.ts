@@ -21,7 +21,9 @@ describe('mapError', () => {
   })
 
   it("treats Gemini's 400 about the API key as an invalid key", () => {
-    expect(mapError(httpError(400, 'Please pass a valid API key'), 'Gemini', 'gemini-3.8-flash').kind).toBe('invalid-key')
+    expect(mapError(httpError(400, 'Please pass a valid API key'), 'Gemini', 'gemini-3.8-flash').kind).toBe(
+      'invalid-key'
+    )
   })
 
   it('maps 402 to an empty balance', () => {
@@ -67,14 +69,20 @@ describe('mapError', () => {
   })
 
   it('adds the reason a connection failed, from Electron or from Node', () => {
-    const fromElectron = new APIConnectionError({ message: 'Connection error.', cause: new Error('net::ERR_CERT_AUTHORITY_INVALID') })
+    const fromElectron = new APIConnectionError({
+      message: 'Connection error.',
+      cause: new Error('net::ERR_CERT_AUTHORITY_INVALID')
+    })
     expect(mapError(fromElectron, 'OpenAI', 'x').message).toBe(
       "Can't reach OpenAI. Check your internet connection. (net::ERR_CERT_AUTHORITY_INVALID)"
     )
 
     // Node's fetch hides the reason one level deeper.
     const lookupFailed = new Error('getaddrinfo ENOTFOUND api.openai.com')
-    const fromNode = new APIConnectionError({ message: 'Connection error.', cause: new TypeError('fetch failed', { cause: lookupFailed }) })
+    const fromNode = new APIConnectionError({
+      message: 'Connection error.',
+      cause: new TypeError('fetch failed', { cause: lookupFailed })
+    })
     expect(mapError(fromNode, 'OpenAI', 'x').message).toBe(
       "Can't reach OpenAI. Check your internet connection. (getaddrinfo ENOTFOUND api.openai.com)"
     )
@@ -86,31 +94,48 @@ describe('mapError', () => {
   })
 
   it('falls back to unknown for anything else', () => {
-    expect(mapError(new Error('boom'), 'DeepSeek', 'x')).toEqual({ kind: 'unknown', message: 'Something went wrong: boom' })
+    expect(mapError(new Error('boom'), 'DeepSeek', 'x')).toEqual({
+      kind: 'unknown',
+      message: 'Something went wrong: boom'
+    })
     expect(mapError('weird', 'DeepSeek', 'x').kind).toBe('unknown')
   })
 })
 
 describe('mapError with Claude errors', () => {
   it("reads the message from Anthropic's error body", () => {
-    expect(mapError(claudeError(401, 'authentication_error', 'invalid x-api-key'), 'Claude', 'm').kind).toBe('invalid-key')
+    expect(mapError(claudeError(401, 'authentication_error', 'invalid x-api-key'), 'Claude', 'm').kind).toBe(
+      'invalid-key'
+    )
     const info = mapError(claudeError(404, 'not_found_error', 'model: claude-opus-9'), 'Claude', 'claude-opus-9')
     expect(info.kind).toBe('bad-model')
     expect(info.message).toBe('Claude doesn\'t recognise the model "claude-opus-9". Check the model name in Settings.')
   })
 
   it('treats a 400 about the credit balance as an empty balance', () => {
-    const lowCredit = claudeError(400, 'invalid_request_error', 'Your credit balance is too low to access the Anthropic API.')
+    const lowCredit = claudeError(
+      400,
+      'invalid_request_error',
+      'Your credit balance is too low to access the Anthropic API.'
+    )
     expect(mapError(lowCredit, 'Claude', 'm').kind).toBe('no-balance')
   })
 
   it('maps overloaded (529) to a server problem and 429 to rate limiting', () => {
     expect(mapError(claudeError(529, 'overloaded_error', 'Overloaded'), 'Claude', 'm').kind).toBe('server')
-    expect(mapError(claudeError(429, 'rate_limit_error', 'Number of request tokens has exceeded your per-minute rate limit'), 'Claude', 'm').kind).toBe('rate-limited')
+    expect(
+      mapError(
+        claudeError(429, 'rate_limit_error', 'Number of request tokens has exceeded your per-minute rate limit'),
+        'Claude',
+        'm'
+      ).kind
+    ).toBe('rate-limited')
   })
 
   it("maps the Anthropic SDK's connection failures and timeouts", () => {
-    expect(mapError(new Anthropic.APIConnectionError({ message: 'Connection error.' }), 'Claude', 'm').kind).toBe('network')
+    expect(mapError(new Anthropic.APIConnectionError({ message: 'Connection error.' }), 'Claude', 'm').kind).toBe(
+      'network'
+    )
     expect(mapError(new Anthropic.APIConnectionTimeoutError(), 'Claude', 'm').kind).toBe('timeout')
   })
 
@@ -123,6 +148,9 @@ describe('mapError with Claude errors', () => {
 
 describe('noKeyError', () => {
   it("asks for the chosen provider's API key", () => {
-    expect(noKeyError('Claude')).toEqual({ kind: 'no-key', message: 'Add your Claude API key in Settings to get started.' })
+    expect(noKeyError('Claude')).toEqual({
+      kind: 'no-key',
+      message: 'Add your Claude API key in Settings to get started.'
+    })
   })
 })

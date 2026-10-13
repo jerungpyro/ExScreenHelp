@@ -57,7 +57,9 @@ function isSize(value: unknown): value is Size {
     return false
   }
   const candidate = value as Partial<Size>
-  return isFiniteNumber(candidate.width) && isFiniteNumber(candidate.height) && candidate.width > 0 && candidate.height > 0
+  return (
+    isFiniteNumber(candidate.width) && isFiniteNumber(candidate.height) && candidate.width > 0 && candidate.height > 0
+  )
 }
 
 function isPoint(value: unknown): value is Point {

@@ -53,7 +53,11 @@ describe('bubbleWindowBounds', () => {
 
 describe('clampAnchor', () => {
   it('keeps the display the bubble is on', () => {
-    expect(clampAnchor({ side: 'left', y: 1400, displayId: 7 }, workArea)).toEqual({ side: 'left', y: 976, displayId: 7 })
+    expect(clampAnchor({ side: 'left', y: 1400, displayId: 7 }, workArea)).toEqual({
+      side: 'left',
+      y: 976,
+      displayId: 7
+    })
   })
 
   it('pulls a saved position back on screen after a resolution change', () => {

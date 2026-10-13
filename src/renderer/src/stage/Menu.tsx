@@ -49,7 +49,11 @@ export function Menu({ rect, side, reduceMotion, onSelectArea, onHistory, onSett
       style={{ left: rect.x, top: rect.y, width: rect.width, height: rect.height, transformOrigin: origin }}
       initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9, x: towardsBubble }}
       animate={{ opacity: 1, scale: 1, x: 0 }}
-      exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95, x: towardsBubble / 2, transition: { duration: 0.12 } }}
+      exit={
+        reduceMotion
+          ? { opacity: 0 }
+          : { opacity: 0, scale: 0.95, x: towardsBubble / 2, transition: { duration: 0.12 } }
+      }
       transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 520, damping: 34 }}
     >
       <MenuItem icon={<SelectionIcon size={18} />} label="Select area" onClick={onSelectArea} autoFocus />

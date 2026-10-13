@@ -13,7 +13,9 @@ function fakeGitHub(reply: () => Response) {
 }
 
 function release(tagName: unknown): Response {
-  return new Response(JSON.stringify({ tag_name: tagName, html_url: 'https://github.com/jerungpyro/ExScreenHelp/releases/tag/x' }))
+  return new Response(
+    JSON.stringify({ tag_name: tagName, html_url: 'https://github.com/jerungpyro/ExScreenHelp/releases/tag/x' })
+  )
 }
 
 describe('isNewerVersion', () => {
@@ -45,7 +47,10 @@ describe('checkForUpdate', () => {
 
   it('reports being up to date', async () => {
     const github = fakeGitHub(() => release('v1.4.0'))
-    expect(await checkForUpdate('1.4.0', github.fetch)).toMatchObject({ latestVersion: '1.4.0', updateAvailable: false })
+    expect(await checkForUpdate('1.4.0', github.fetch)).toMatchObject({
+      latestVersion: '1.4.0',
+      updateAvailable: false
+    })
   })
 
   it('says it could not find out when GitHub fails or answers oddly', async () => {

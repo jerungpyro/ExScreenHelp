@@ -38,7 +38,10 @@ describe('settings store', () => {
   })
 
   it('saves where the panel was put and how big it is, and reads them back', () => {
-    createSettingsStore(dir, fakeCrypto).update({ panelSize: { width: 600, height: 700 }, panelPosition: { x: 300, y: 150 } })
+    createSettingsStore(dir, fakeCrypto).update({
+      panelSize: { width: 600, height: 700 },
+      panelPosition: { x: 300, y: 150 }
+    })
     const settings = createSettingsStore(dir, fakeCrypto).get()
     expect(settings.panelSize).toEqual({ width: 600, height: 700 })
     expect(settings.panelPosition).toEqual({ x: 300, y: 150 })
@@ -53,7 +56,10 @@ describe('settings store', () => {
   })
 
   it('ignores a damaged panel size or position', () => {
-    writeFileSync(join(dir, 'settings.json'), JSON.stringify({ panelSize: { width: -5, height: 700 }, panelPosition: { x: 'left', y: 3 } }))
+    writeFileSync(
+      join(dir, 'settings.json'),
+      JSON.stringify({ panelSize: { width: -5, height: 700 }, panelPosition: { x: 'left', y: 3 } })
+    )
     const settings = createSettingsStore(dir, fakeCrypto).get()
     expect(settings.panelSize).toBeNull()
     expect(settings.panelPosition).toBeNull()
@@ -90,7 +96,10 @@ describe('settings store', () => {
   })
 
   it('treats settings saved before providers existed as DeepSeek, keeping the saved model', () => {
-    writeFileSync(join(dir, 'settings.json'), JSON.stringify({ model: 'deepseek-v4-flash-vision-exp', baseUrl: 'https://api.deepseek.com' }))
+    writeFileSync(
+      join(dir, 'settings.json'),
+      JSON.stringify({ model: 'deepseek-v4-flash-vision-exp', baseUrl: 'https://api.deepseek.com' })
+    )
     const settings = createSettingsStore(dir, fakeCrypto).get()
     expect(settings.provider).toBe('deepseek')
     expect(settings.model).toBe('deepseek-v4-flash-vision-exp')

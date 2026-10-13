@@ -1,4 +1,11 @@
-import { ArrowClockwiseIcon, ArrowUpIcon, SelectionPlusIcon, StopIcon, WarningCircleIcon, XIcon } from '@phosphor-icons/react'
+import {
+  ArrowClockwiseIcon,
+  ArrowUpIcon,
+  SelectionPlusIcon,
+  StopIcon,
+  WarningCircleIcon,
+  XIcon
+} from '@phosphor-icons/react'
 import {
   Fragment,
   useCallback,
@@ -186,7 +193,9 @@ export function ConversationView({
   return (
     <div className="conversation">
       <div className="conversation__scroll" ref={scrollRef} onScroll={onScroll}>
-        {unsent && <CaptureThumbnail url={captureUrl(conversation.id)} onEnlarge={setEnlargedUrl} onLoad={keepPinnedToBottom} />}
+        {unsent && (
+          <CaptureThumbnail url={captureUrl(conversation.id)} onEnlarge={setEnlargedUrl} onLoad={keepPinnedToBottom} />
+        )}
         {messages.map((message, index) => {
           if (message.role === 'assistant') {
             return (
@@ -275,11 +284,22 @@ export function ConversationView({
       <form className="composer" onSubmit={send}>
         {pendingUrl !== null && (
           <div className="composer__attachment">
-            <button type="button" className="composer__chip" onClick={() => setEnlargedUrl(pendingUrl)} aria-label="Enlarge the attached screenshot">
+            <button
+              type="button"
+              className="composer__chip"
+              onClick={() => setEnlargedUrl(pendingUrl)}
+              aria-label="Enlarge the attached screenshot"
+            >
               <img src={pendingUrl} alt="" draggable={false} />
             </button>
             <span className="composer__chip-label">Screenshot attached</span>
-            <button type="button" className="icon-button composer__chip-remove" title="Remove screenshot" aria-label="Remove screenshot" onClick={removeCapture}>
+            <button
+              type="button"
+              className="icon-button composer__chip-remove"
+              title="Remove screenshot"
+              aria-label="Remove screenshot"
+              onClick={removeCapture}
+            >
               <XIcon size={14} />
             </button>
           </div>

@@ -77,7 +77,11 @@ describe('history store', () => {
     const asked = createAsked(storeAt('2026-09-28T10:00:00', 'aaaa'))
     storeAt('2026-09-28T11:00:00', 'bbbb').create(PNG)
 
-    expect(storeAt('2026-09-28T12:00:00').list().map((c) => c.id)).toEqual([asked.id])
+    expect(
+      storeAt('2026-09-28T12:00:00')
+        .list()
+        .map((c) => c.id)
+    ).toEqual([asked.id])
   })
 
   it('removes selections that were never asked about, and keeps the rest', () => {

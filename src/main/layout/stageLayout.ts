@@ -1,4 +1,13 @@
-import { BUBBLE_SIZE, EDGE_MARGIN, MENU_GAP, MENU_HEIGHT, MENU_WIDTH, PANEL_HEIGHT, PANEL_WIDTH, WINDOW_MARGIN } from '../../shared/constants'
+import {
+  BUBBLE_SIZE,
+  EDGE_MARGIN,
+  MENU_GAP,
+  MENU_HEIGHT,
+  MENU_WIDTH,
+  PANEL_HEIGHT,
+  PANEL_WIDTH,
+  WINDOW_MARGIN
+} from '../../shared/constants'
 import { fitPanel, panelArea } from '../../shared/geometry'
 import type { BubbleAnchor, Point, Rect, Size, StageLayout } from '../../shared/types'
 import { bubbleRect } from './snap'

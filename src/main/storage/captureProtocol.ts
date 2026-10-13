@@ -6,7 +6,9 @@ const SCHEME = 'capture'
 
 /** Must run before the app is ready. */
 export function registerCaptureScheme(): void {
-  protocol.registerSchemesAsPrivileged([{ scheme: SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true } }])
+  protocol.registerSchemesAsPrivileged([
+    { scheme: SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true } }
+  ])
 }
 
 /**

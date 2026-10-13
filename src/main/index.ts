@@ -106,8 +106,11 @@ if (!app.requestSingleInstanceLock()) {
 } else {
   // This is a tray app: closing windows must not quit it.
   app.on('window-all-closed', () => {})
-  app.whenReady().then(start).catch((err) => {
-    console.error('ExScreenHelp failed to start:', err)
-    app.quit()
-  })
+  app
+    .whenReady()
+    .then(start)
+    .catch((err) => {
+      console.error('ExScreenHelp failed to start:', err)
+      app.quit()
+    })
 }

@@ -32,7 +32,11 @@ export function secureWebPreferences(): Electron.WebPreferences {
  * or null if it doesn't arrive within `timeoutMs` (pass null to wait indefinitely)
  * or the renderer goes away first.
  */
-export function waitForMessage(channel: string, from: WebContents, timeoutMs: number | null): Promise<unknown[] | null> {
+export function waitForMessage(
+  channel: string,
+  from: WebContents,
+  timeoutMs: number | null
+): Promise<unknown[] | null> {
   return new Promise((resolve) => {
     let timer: NodeJS.Timeout | undefined
 

@@ -92,7 +92,11 @@ export function Stage() {
       }
       // A selection that was never asked about is dropped once another conversation takes its place.
       const previous = chatRef.current
-      if (previous !== null && previous.conversation.id !== conversationId && previous.conversation.messages.length === 0) {
+      if (
+        previous !== null &&
+        previous.conversation.id !== conversationId &&
+        previous.conversation.messages.length === 0
+      ) {
         void api.history.remove(previous.conversation.id)
       }
       next = { conversationId, text: '', capture: null }
@@ -428,7 +432,11 @@ export function Stage() {
             {...CLICKABLE}
             style={{ left: panel.x, top: panel.y, width: panel.width, height: panel.height }}
             initial={{ opacity: 0, y: reduceMotion ? 0 : 6 }}
-            animate={{ opacity: 1, y: 0, transition: { delay: reduceMotion ? 0 : 0.1, duration: 0.24, ease: [0.16, 1, 0.3, 1] } }}
+            animate={{
+              opacity: 1,
+              y: 0,
+              transition: { delay: reduceMotion ? 0 : 0.1, duration: 0.24, ease: [0.16, 1, 0.3, 1] }
+            }}
             exit={{ opacity: 0, transition: { duration: 0.09 } }}
           >
             <Panel

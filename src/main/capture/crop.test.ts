@@ -31,17 +31,29 @@ describe('toPhysicalRect', () => {
   })
 
   it('returns null for a selection smaller than 8 DIPs wide', () => {
-    const result = toPhysicalRect({ x: 10, y: 10, width: 7, height: 100 }, { width: 1920, height: 1080 }, { width: 1920, height: 1080 })
+    const result = toPhysicalRect(
+      { x: 10, y: 10, width: 7, height: 100 },
+      { width: 1920, height: 1080 },
+      { width: 1920, height: 1080 }
+    )
     expect(result).toBeNull()
   })
 
   it('returns null for a selection smaller than 8 DIPs tall', () => {
-    const result = toPhysicalRect({ x: 10, y: 10, width: 100, height: 7 }, { width: 1920, height: 1080 }, { width: 1920, height: 1080 })
+    const result = toPhysicalRect(
+      { x: 10, y: 10, width: 100, height: 7 },
+      { width: 1920, height: 1080 },
+      { width: 1920, height: 1080 }
+    )
     expect(result).toBeNull()
   })
 
   it('returns null when the selection is entirely outside the image', () => {
-    const result = toPhysicalRect({ x: 5000, y: 10, width: 100, height: 100 }, { width: 1920, height: 1080 }, { width: 1920, height: 1080 })
+    const result = toPhysicalRect(
+      { x: 5000, y: 10, width: 100, height: 100 },
+      { width: 1920, height: 1080 },
+      { width: 1920, height: 1080 }
+    )
     expect(result).toBeNull()
   })
 })

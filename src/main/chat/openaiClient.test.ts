@@ -105,7 +105,9 @@ describe('OpenAI-compatible client', () => {
       res.end('data: [DONE]\n\n')
     }
 
-    await collect(client().streamChat({ system: 'Be brief.', turns: [{ role: 'user', text: 'hi' }] }, new AbortController().signal))
+    await collect(
+      client().streamChat({ system: 'Be brief.', turns: [{ role: 'user', text: 'hi' }] }, new AbortController().signal)
+    )
     expect(received).toEqual([
       { role: 'system', content: 'Be brief.' },
       { role: 'user', content: 'hi' }

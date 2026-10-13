@@ -41,7 +41,9 @@ function startStream(res: ServerResponse): void {
       }
     })
   )
-  res.write(sse('content_block_start', { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } }))
+  res.write(
+    sse('content_block_start', { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } })
+  )
 }
 
 function writeText(res: ServerResponse, text: string): void {
@@ -164,7 +166,13 @@ describe('Claude client', () => {
       return fetch(input, init)
     }
 
-    const config = { provider: 'claude' as const, apiKey: 'sk-ant-test', baseUrl, model: 'claude-x', fetch: recordingFetch }
+    const config = {
+      provider: 'claude' as const,
+      apiKey: 'sk-ant-test',
+      baseUrl,
+      model: 'claude-x',
+      fetch: recordingFetch
+    }
     expect(await collect(createClaudeClient(config).streamChat(hello, new AbortController().signal))).toEqual(['Hi'])
     expect(requestedUrls).toHaveLength(1)
     expect(requestedUrls[0]).toContain(`${baseUrl}/v1/messages`)
@@ -273,7 +281,10 @@ describe('Claude client', () => {
     const received: string[] = []
 
     const error = await collect(
-      client('claude-opus-5-5', { streamIdleMs: 200, nonStreamTotalMs: 1000 }).streamChat(hello, new AbortController().signal),
+      client('claude-opus-5-5', { streamIdleMs: 200, nonStreamTotalMs: 1000 }).streamChat(
+        hello,
+        new AbortController().signal
+      ),
       received
     ).catch((e) => e)
 

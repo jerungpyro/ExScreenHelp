@@ -104,11 +104,19 @@ export function registerIpc(deps: IpcDeps): void {
     // Moving the orb brings the panel back beside it. The size the user chose is kept.
     settings.update({ bubble: anchor, panelPosition: null })
   })
-  ipcMain.on(Channels.bubbleClick, (_event, orbOrigin: unknown) => void controller.bubbleClicked(orbOriginFrom(orbOrigin)))
-  ipcMain.on(Channels.bubbleSetInteractive, (_event, interactive: unknown) => bubble.setInteractive(interactive === true))
+  ipcMain.on(
+    Channels.bubbleClick,
+    (_event, orbOrigin: unknown) => void controller.bubbleClicked(orbOriginFrom(orbOrigin))
+  )
+  ipcMain.on(Channels.bubbleSetInteractive, (_event, interactive: unknown) =>
+    bubble.setInteractive(interactive === true)
+  )
 
   // ----- Stage -----
-  ipcMain.on(Channels.stageClosed, (_event, orbOrigin: unknown) => void controller.stageClosed(orbOriginFrom(orbOrigin)))
+  ipcMain.on(
+    Channels.stageClosed,
+    (_event, orbOrigin: unknown) => void controller.stageClosed(orbOriginFrom(orbOrigin))
+  )
   ipcMain.on(Channels.stageSelectArea, () => void controller.selectArea())
   ipcMain.on(Channels.stageAddScreenshot, (_event, id: unknown) => {
     if (isString(id) && isValidId(id)) {

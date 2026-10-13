@@ -170,7 +170,10 @@ export function SettingsView({ notice, onNoticeDismissed }: SettingsViewProps) {
         </p>
         <div className="segmented" role="radiogroup" aria-labelledby="provider-label">
           {PROVIDER_IDS.map((id) => (
-            <label key={id} className={id === provider ? 'segmented__option segmented__option--on' : 'segmented__option'}>
+            <label
+              key={id}
+              className={id === provider ? 'segmented__option segmented__option--on' : 'segmented__option'}
+            >
               <input
                 type="radio"
                 name="provider"
