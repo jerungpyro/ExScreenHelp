@@ -1,5 +1,9 @@
 # ExScreenHelp
 
+[![CI](https://github.com/jerungpyro/ExScreenHelp/actions/workflows/ci.yml/badge.svg)](https://github.com/jerungpyro/ExScreenHelp/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/jerungpyro/ExScreenHelp)](https://github.com/jerungpyro/ExScreenHelp/releases/latest)
+[![License: MIT](https://img.shields.io/github/license/jerungpyro/ExScreenHelp)](LICENSE)
+
 **Ask an AI about anything on your screen.** ExScreenHelp is a small floating orb for Windows 11. Click it (or press **Ctrl+Alt+Space**), drag a box around whatever you're looking at, and ask about it in a panel that grows out of the orb. Type a question, or just press Enter, and the AI of your choice answers.
 
 <p align="center">
@@ -48,7 +52,7 @@ The app isn't code-signed, so Windows SmartScreen may say **"Windows protected y
 | Claude | `claude-opus-5-5` | [platform.claude.com](https://platform.claude.com/settings/keys) |
 | Gemini | `gemini-3.8-flash` | [aistudio.google.com](https://aistudio.google.com/apikey) |
 
-You can change the model in Settings, as long as it accepts images. Each provider keeps its own key, so you can switch back and forth without pasting keys again.
+You can change the model in Settings, as long as it accepts images (useful if a provider renames its default model). Each provider keeps its own key, so you can switch back and forth without pasting keys again.
 
 ## Using it
 
@@ -140,18 +144,19 @@ sequenceDiagram
 
 ## Build from source
 
-Needs Windows and [Node.js](https://nodejs.org/) 22.12 or newer.
+Needs Windows 11 and [Node.js](https://nodejs.org/) 22.12 or newer.
 
 ```powershell
 npm install
 npm run dev        # run with live reload
 npm test           # unit tests (Vitest)
 npm run typecheck  # type-check the main process and the windows
+npm run format     # format the code with Prettier
 npm run package    # portable build: dist\win-unpacked\ExScreenHelp.exe
 npm run release    # public downloads: installer and zip in release\ (not code-signed)
 ```
 
-`npm run make-icon` redraws `resources/icon.png`.
+`npm run make-icon` redraws `resources/icon.png`. For running a second copy next to your everyday one, troubleshooting, and the project's conventions, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### Project layout
 
@@ -162,32 +167,31 @@ src/
     chat/        provider clients, request building, error messages, titles
     layout/      where the bubble, menu and panel go on screen
     storage/     settings, encrypted keys, history, the capture:// protocol
+    updates/     asks GitHub whether a newer version is out
     windows/     the bubble, stage and overlay windows
     controller.ts  moves between idle, menu, panel and selecting
     ipc.ts         every request the windows can make, with its checks
+    displays.ts    finds the screen the orb is on
+    shortcut.ts    the global keyboard shortcut
   preload/     exposes window.api to the windows
   renderer/    one page per window: bubble, stage (menu and panel), overlay
-  shared/      types, constants, the provider list and the window.api contract
+  shared/      types, constants, the provider list, panel geometry and the window.api contract
 ```
 
 Logic that doesn't need Electron (requests, errors, history, settings, layout) has unit tests next to it. The windows, the controller and IPC are checked by running the app.
 
-### Running a second copy
+The original design and plan, from before version 1.0, are in [`docs/design/`](docs/design/). The code has moved on since, so treat them as background.
 
-To run a test build next to your everyday copy, point it at another data folder. It then keeps its own settings, history and keys:
+## Contributing
 
-```powershell
-$env:EXSCREENHELP_USER_DATA = 'C:\some\folder'; npm run dev
-```
+Bug reports, ideas and pull requests are welcome.
 
-The keyboard shortcut is shared by the whole system, so whichever copy starts second shows it as taken in Settings.
+- [CONTRIBUTING.md](CONTRIBUTING.md) covers setting up, the conventions, and how to send a change.
+- Report bugs and suggest features in [issues](https://github.com/jerungpyro/ExScreenHelp/issues/new/choose).
+- Report security problems privately, as described in [SECURITY.md](SECURITY.md).
+- Everyone taking part is expected to follow the [code of conduct](CODE_OF_CONDUCT.md).
 
-### Troubleshooting
-
-- If `npm run dev` fails with `Cannot read properties of undefined (reading 'registerSchemesAsPrivileged')`, the environment variable `ELECTRON_RUN_AS_NODE` is set. Some tools, such as VS Code extensions, set it. Clear it first: `Remove-Item Env:ELECTRON_RUN_AS_NODE`.
-- If a provider renames its default model, change it in Settings.
-
-The original design and plan are in [`docs/superpowers/`](docs/superpowers/).
+What changed in each version is in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

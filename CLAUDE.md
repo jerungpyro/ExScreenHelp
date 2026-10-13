@@ -1,6 +1,6 @@
 # ExScreenHelp
 
-A Windows 11 tray app: a floating orb that freezes the screen, lets you drag a box, and sends the crop to DeepSeek, OpenAI, Claude or Gemini. Answers stream into a panel; conversations (with their screenshots) are saved locally. Electron + React + TypeScript, built with electron-vite. The user-facing description is in [README.md](README.md); the original design is in `docs/superpowers/specs/`.
+A Windows 11 tray app: a floating orb that freezes the screen, lets you drag a box, and sends the crop to DeepSeek, OpenAI, Claude or Gemini. Answers stream into a panel; conversations (with their screenshots) are saved locally. Electron + React + TypeScript, built with electron-vite. The user-facing description is in [README.md](README.md); the original design is in `docs/design/specs/`. Contributor docs: CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md, CHANGELOG.md.
 
 ## Commands
 
@@ -8,6 +8,7 @@ A Windows 11 tray app: a floating orb that freezes the screen, lets you drag a b
 npm run dev        # run with live reload
 npm test           # Vitest unit tests (main-process logic only)
 npm run typecheck  # node + web tsconfigs
+npm run format     # Prettier (CI runs format:check)
 npm run package    # portable build in dist\win-unpacked
 npm run release    # installer + zip in release\ (unsigned)
 ```
@@ -27,6 +28,8 @@ npm run release    # installer + zip in release\ (unsigned)
 - Writes to disk that must survive a crash go through `storage/writeFileSafely` (temp file, then rename).
 - Animate only `transform` and `opacity`. The orb rests when idle because every animated frame in a transparent window costs GPU time.
 - Comments explain why, in plain sentences. Keep the user-facing README in step with features.
+- Add user-facing changes to CHANGELOG.md under Unreleased; on release, move them under the new version.
+- CI (`.github/workflows/ci.yml`) runs format:check, typecheck, test and build on every push and pull request.
 
 ## Gotchas
 
