@@ -18,6 +18,8 @@
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "test": "vitest run",
     "test:watch": "vitest",
+    "format": "prettier --write src",
+    "format:check": "prettier --check src",
     "make-icon": "node scripts/make-icon.mjs",
     "package": "npm run build && electron-builder --win dir",
     "release": "npm run build && electron-builder --win nsis zip --publish never --config.directories.output=release"
@@ -36,6 +38,7 @@
     "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
     "motion": "^13.4.4",
+    "prettier": "3.6.2",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-markdown": "^10.1.0",

@@ -1,0 +1,5 @@
+# Keep line endings as LF in the repository and in checkouts, whatever each contributor's Git settings.
+* text=auto eol=lf
+
+*.png binary
+*.ico binary
