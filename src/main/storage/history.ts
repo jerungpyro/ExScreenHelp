@@ -1,7 +1,8 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { FIRST_CAPTURE_NAME, NEW_CAPTURE_TITLE } from '../../shared/constants'
 import type { Conversation, ConversationSummary } from '../../shared/types'
+import { writeFileSafely } from './writeFileSafely'
 
 const CONVERSATION_FILE = 'conversation.json'
 
@@ -95,11 +96,7 @@ export function createHistoryStore(rootDir: string, options: HistoryOptions = {}
 
   function save(conversation: Conversation): void {
     const folder = folderFor(conversation.id)
-    const finalPath = join(folder, CONVERSATION_FILE)
-    const tempPath = `${finalPath}.tmp`
-    // Write to a temp file first, then rename, so a crash never leaves a half-written file.
-    writeFileSync(tempPath, JSON.stringify(conversation, null, 2), 'utf8')
-    renameSync(tempPath, finalPath)
+    writeFileSafely(join(folder, CONVERSATION_FILE), JSON.stringify(conversation, null, 2))
   }
 
   function create(png: Buffer): Conversation {
