@@ -37,5 +37,8 @@ export const NON_STREAM_TIMEOUT_MS = 120_000
 /** Preferences are sent with every request, so keep them to a sensible size. */
 export const MAX_PREFERENCES_LENGTH = 10_000
 
+/** More than any screenshot needs. A bigger pasted image is refused rather than decoded. */
+export const MAX_PASTED_BYTES = 30 * 1024 * 1024
+
 export const TITLE_MAX_LENGTH = 60
 export const NEW_CAPTURE_TITLE = 'New capture'

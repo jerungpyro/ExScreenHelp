@@ -35,7 +35,7 @@ You can change the model in Settings, as long as it accepts images. Each provide
 
 - **Ask about something on screen:** click the orb, choose **Select area** (or **New selection** at the top of the panel) and drag a box. The screen freezes while you select. Press **Esc** to cancel.
 - **Keyboard shortcut:** press **Ctrl+Alt+Space** from any app to go straight to selecting an area. With a chat open, it adds a screenshot to your next follow-up instead. Choose a different shortcut, or turn it off, in Settings.
-- **Follow up:** type in the box under the answer. **Enter** sends, **Shift+Enter** adds a new line.
+- **Follow up:** type in the box under the answer. **Enter** sends, **Shift+Enter** adds a new line. To show the AI something else, add a screenshot with the button beside the box, or paste an image (**Ctrl+V**), for example one taken with **Win+Shift+S**. Large pasted images are scaled down to 2000 pixels on their longest side.
 - **Pick up where you left off:** clicking the orb reopens the conversation you last had open. Click the orb at the top of the panel (or press **Esc**) to close it again.
 - **History:** reopen any earlier conversation and keep asking.
 - **Preferences:** in Settings, tell the AI how you like your answers, for example which language to use, how much detail to give, or how to explain code. They're sent with every question, whichever provider you use.
@@ -45,7 +45,7 @@ You can change the model in Settings, as long as it accepts images. Each provide
 
 ## Privacy
 
-- Only the area you select is saved or sent. The app briefly screenshots the whole screen to freeze it while you select, but keeps that image in memory only.
+- Only the area you select, or an image you paste, is saved or sent. The app briefly screenshots the whole screen to freeze it while you select, but keeps that image in memory only.
 - The selected area, your questions and your Preferences are sent to the provider you chose (or to the API address set in Settings), and nowhere else.
 - Your API keys are encrypted with Windows' built-in protection (DPAPI) and stored on your PC.
 - Conversations and their screenshots are stored on your PC in `%APPDATA%\ExScreenHelp\`. Uninstalling keeps them. To erase them, delete that folder.

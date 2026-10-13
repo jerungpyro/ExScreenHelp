@@ -1,5 +1,15 @@
 import { ArrowClockwiseIcon, ArrowUpIcon, SelectionPlusIcon, StopIcon, WarningCircleIcon, XIcon } from '@phosphor-icons/react'
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ClipboardEvent,
+  type FormEvent,
+  type KeyboardEvent
+} from 'react'
+import { MAX_PASTED_BYTES } from '../../../shared/constants'
 import type { ChatErrorKind, ChatState } from '../../../shared/types'
 import { CaptureThumbnail, Lightbox, captureUrl } from './CaptureThumbnail'
 import type { ComposerPatch, ComposerState } from './composer'
@@ -10,6 +20,8 @@ interface ConversationViewProps {
   composer: ComposerState
   onComposerChange(patch: ComposerPatch): void
   onAddScreenshot(): void
+  /** Resolves to false if the image couldn't be attached. */
+  onPasteImage(bytes: Uint8Array): Promise<boolean>
   onOpenSettings(): void
 }
 
@@ -18,6 +30,22 @@ const SETTINGS_ERRORS: ChatErrorKind[] = ['no-key', 'invalid-key', 'bad-model']
 /** Stay pinned to the bottom while an answer streams, unless the user scrolled up to read. */
 const STICK_TO_BOTTOM_PX = 80
 const MAX_COMPOSER_HEIGHT = 120
+
+/**
+ * The image on the clipboard, if any. When the clipboard also holds text (Office copies a picture of
+ * the cells along with them), the text is what the user means to paste.
+ */
+function imageOnClipboard(clipboard: DataTransfer): File | null {
+  if (clipboard.types.includes('text/plain')) {
+    return null
+  }
+  for (const item of Array.from(clipboard.items)) {
+    if (item.kind === 'file' && item.type.startsWith('image/')) {
+      return item.getAsFile()
+    }
+  }
+  return null
+}
 
 function Thinking({ readingScreenshot }: { readingScreenshot: boolean }) {
   return (
@@ -31,9 +59,17 @@ function Thinking({ readingScreenshot }: { readingScreenshot: boolean }) {
   )
 }
 
-export function ConversationView({ chat, composer, onComposerChange, onAddScreenshot, onOpenSettings }: ConversationViewProps) {
+export function ConversationView({
+  chat,
+  composer,
+  onComposerChange,
+  onAddScreenshot,
+  onPasteImage,
+  onOpenSettings
+}: ConversationViewProps) {
   const { conversation, busy, streamingText, error } = chat
   const [enlargedUrl, setEnlargedUrl] = useState<string | null>(null)
+  const [pasteFailed, setPasteFailed] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const stickToBottom = useRef(true)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -106,6 +142,27 @@ export function ConversationView({ chat, composer, onComposerChange, onAddScreen
       event.preventDefault()
       send()
     }
+  }
+
+  /** Pasting an image attaches it like a screenshot. Pasting text works as usual. */
+  function onComposerPaste(event: ClipboardEvent<HTMLTextAreaElement>): void {
+    const image = imageOnClipboard(event.clipboardData)
+    if (image === null) {
+      return
+    }
+    event.preventDefault()
+    void attachPastedImage(image)
+  }
+
+  async function attachPastedImage(image: File): Promise<void> {
+    setPasteFailed(false)
+    if (image.size > MAX_PASTED_BYTES) {
+      setPasteFailed(true)
+      return
+    }
+    const bytes = new Uint8Array(await image.arrayBuffer())
+    const attached = await onPasteImage(bytes)
+    setPasteFailed(!attached)
   }
 
   const retry = () => window.api.chat.retry(conversation.id)
@@ -202,6 +259,11 @@ export function ConversationView({ chat, composer, onComposerChange, onAddScreen
             </button>
           </div>
         )}
+        {pasteFailed && (
+          <p className="composer__error" role="alert">
+            Couldn't attach that image. Paste a PNG or JPEG under {MAX_PASTED_BYTES / (1024 * 1024)} MB.
+          </p>
+        )}
         <div className="composer__row">
           <button
             type="button"
@@ -221,8 +283,12 @@ export function ConversationView({ chat, composer, onComposerChange, onAddScreen
             placeholder={busy ? 'Answering…' : composer.capture ? 'Add a note (optional)' : 'Ask a follow-up'}
             aria-label="Follow-up question"
             disabled={busy}
-            onChange={(event) => onComposerChange({ text: event.target.value })}
+            onChange={(event) => {
+              onComposerChange({ text: event.target.value })
+              setPasteFailed(false)
+            }}
             onKeyDown={onComposerKeyDown}
+            onPaste={onComposerPaste}
           />
           {busy ? (
             <button

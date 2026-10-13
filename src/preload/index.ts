@@ -40,7 +40,8 @@ const api: ExScreenApi = {
     retry: (conversationId) => ipcRenderer.send(Channels.chatRetry, conversationId),
     stop: (conversationId) => ipcRenderer.send(Channels.chatStop, conversationId),
     discardCapture: (conversationId, captureName) =>
-      ipcRenderer.send(Channels.chatDiscardCapture, conversationId, captureName)
+      ipcRenderer.send(Channels.chatDiscardCapture, conversationId, captureName),
+    pasteImage: (conversationId, bytes) => ipcRenderer.invoke(Channels.chatPasteImage, conversationId, bytes)
   },
 
   history: {

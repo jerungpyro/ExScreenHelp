@@ -64,6 +64,11 @@ export interface ExScreenApi {
     stop(conversationId: string): void
     /** Deletes an added screenshot that won't be sent (its chip was removed or replaced). */
     discardCapture(conversationId: string, captureName: string): void
+    /**
+     * Saves a pasted image (PNG or JPEG bytes) as this conversation's next screenshot, for the next
+     * follow-up. Returns its file name, or null if it isn't a usable image.
+     */
+    pasteImage(conversationId: string, bytes: Uint8Array): Promise<string | null>
   }
 
   history: {
@@ -120,6 +125,7 @@ export const Channels = {
   chatRetry: 'chat:retry',
   chatStop: 'chat:stop',
   chatDiscardCapture: 'chat:discard-capture',
+  chatPasteImage: 'chat:paste-image',
 
   historyList: 'history:list',
   historyOpen: 'history:open',

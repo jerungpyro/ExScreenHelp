@@ -4,6 +4,7 @@ import { MAX_PREFERENCES_LENGTH } from '../shared/constants'
 import { isProviderId } from '../shared/providers'
 import { isShortcutSetting } from '../shared/shortcuts'
 import type { SettingsPatch, SettingsView } from '../shared/types'
+import { pngFromPastedImage } from './capture/pastedImage'
 import type { ClientSetup } from './chat/chatClient'
 import type { ChatSession } from './chat/chatSession'
 import { testConnection } from './chat/testConnection'
@@ -119,6 +120,16 @@ export function registerIpc({ bubble, controller, chatSession, history, settings
     if (isString(id) && isString(captureName)) {
       history.removeCapture(id, captureName)
     }
+  })
+  ipcMain.handle(Channels.chatPasteImage, (_event, id: unknown, bytes: unknown) => {
+    if (!isString(id) || !isValidId(id) || !(bytes instanceof Uint8Array) || history.load(id) === null) {
+      return null
+    }
+    const png = pngFromPastedImage(bytes)
+    if (png === null) {
+      return null
+    }
+    return history.addCapture(id, png)
   })
   ipcMain.on(Channels.chatRetry, (_event, id: unknown) => {
     if (isString(id)) {

@@ -425,6 +425,13 @@
   font-size: 13px;
 }
 
+.composer__error {
+  margin: 0;
+  padding: 2px 4px;
+  color: var(--danger);
+  font-size: 12.5px;
+}
+
 .composer:focus-within {
   border-color: var(--accent);
 }

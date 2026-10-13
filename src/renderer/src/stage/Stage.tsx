@@ -253,6 +253,22 @@ export function Stage() {
     }
   }
 
+  /** Attaches a pasted image to the follow-up box like a screenshot. Returns false if it couldn't be used. */
+  async function pasteImage(conversationId: string, bytes: Uint8Array): Promise<boolean> {
+    const captureName = await api.chat.pasteImage(conversationId, bytes)
+    if (captureName === null) {
+      return false
+    }
+    const current = chatRef.current
+    if (current === null || current.conversation.id !== conversationId) {
+      // Another chat was opened while the image was being saved.
+      api.chat.discardCapture(conversationId, captureName)
+      return true
+    }
+    showConversation(current, captureName)
+    return true
+  }
+
   async function openConversation(conversationId: string): Promise<void> {
     const state = await api.history.open(conversationId)
     if (state !== null) {
@@ -329,6 +345,7 @@ export function Stage() {
               onNavigate={openView}
               onSelectArea={() => void selectArea()}
               onAddScreenshot={(id) => void addScreenshot(id)}
+              onPasteImage={pasteImage}
               onComposerChange={updateComposer}
               onOpenConversation={(id) => void openConversation(id)}
               onConversationDeleted={(id) => {

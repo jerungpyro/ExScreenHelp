@@ -17,6 +17,7 @@ interface PanelProps {
   onNavigate(view: PanelView): void
   onSelectArea(): void
   onAddScreenshot(conversationId: string): void
+  onPasteImage(conversationId: string, bytes: Uint8Array): Promise<boolean>
   onComposerChange(patch: ComposerPatch): void
   onOpenConversation(conversationId: string): void
   onConversationDeleted(conversationId: string): void
@@ -78,6 +79,7 @@ export function Panel(props: PanelProps) {
               composer={props.composer}
               onComposerChange={props.onComposerChange}
               onAddScreenshot={() => props.onAddScreenshot(chat.conversation.id)}
+              onPasteImage={(bytes) => props.onPasteImage(chat.conversation.id, bytes)}
               onOpenSettings={() => onNavigate('settings')}
             />
           )}
