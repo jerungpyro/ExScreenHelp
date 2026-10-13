@@ -13,6 +13,7 @@ import { MAX_PASTED_BYTES } from '../../../shared/constants'
 import type { ChatErrorKind, ChatState } from '../../../shared/types'
 import { CaptureThumbnail, Lightbox, captureUrl } from './CaptureThumbnail'
 import type { ComposerPatch, ComposerState } from './composer'
+import { CopyButton } from './CopyButton'
 import { Markdown } from './Markdown'
 
 interface ConversationViewProps {
@@ -175,6 +176,8 @@ export function ConversationView({
             return (
               <div key={index} className="answer">
                 <Markdown text={message.text} />
+                {/* Copies the Markdown, so headings, lists and code blocks survive being pasted elsewhere. */}
+                <CopyButton className="answer__copy" getText={() => message.text} />
               </div>
             )
           }

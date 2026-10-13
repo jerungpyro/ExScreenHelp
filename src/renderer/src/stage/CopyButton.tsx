@@ -18,7 +18,7 @@ async function copyText(text: string): Promise<void> {
 }
 
 /** A "Copy" button that says "Copied" for a moment after putting `getText()` on the clipboard. */
-export function CopyButton({ getText }: { getText(): string }) {
+export function CopyButton({ getText, className }: { getText(): string; className: string }) {
   const [copied, setCopied] = useState(false)
 
   async function onClick(): Promise<void> {
@@ -28,7 +28,7 @@ export function CopyButton({ getText }: { getText(): string }) {
   }
 
   return (
-    <button type="button" className="code-block__copy" onClick={() => void onClick()}>
+    <button type="button" className={className} onClick={() => void onClick()}>
       {copied ? <CheckIcon size={14} weight="bold" /> : <CopyIcon size={14} />}
       {copied ? 'Copied' : 'Copy'}
     </button>

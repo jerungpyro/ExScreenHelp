@@ -22,7 +22,7 @@ function CodeBlock({ children, node: _node, ...rest }: ComponentPropsWithoutRef<
     <div className="code-block">
       <div className="code-block__bar">
         <span className="code-block__language">{language ?? 'code'}</span>
-        <CopyButton getText={() => preRef.current?.innerText ?? ''} />
+        <CopyButton className="code-block__copy" getText={() => preRef.current?.innerText ?? ''} />
       </div>
       <pre ref={preRef} {...rest}>
         {children}
