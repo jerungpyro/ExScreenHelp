@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the Windows floating-orb screen assistant described in `docs/superpowers/specs/2026-09-28-exscreenhelp-design.md`.
+**Goal:** Build the Windows floating-orb screen assistant described in `docs/design/specs/2026-09-28-exscreenhelp-design.md`.
 
 **Architecture:** An Electron main process owns capture, storage, settings and the DeepSeek client. Three renderer windows (bubble, stage and overlay) only draw UI and talk to main through one typed preload API. Logic that can be pure (layout, snapping, cropping, request building, titles, error mapping) lives in Electron-free modules that are unit-tested with Vitest.
 
